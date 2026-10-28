@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { Course, Task, TopicRevisionQueueItem, Comment, StudySession, AnalyticsData, FlashcardDeck } from '../types';
 import { api } from '../api';
+import { LoveToStudyBanner } from '../components/LoveToStudyBanner';
+import { FestiveTheme } from '../components/FestiveBackground';
 
 interface DashboardViewProps {
   courses: Course[];
@@ -18,6 +20,7 @@ interface DashboardViewProps {
   onOpenQuickCapture: () => void;
   onOpenSessionModal: () => void;
   onRefreshData: () => void;
+  festiveTheme: FestiveTheme;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -31,6 +34,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenQuickCapture,
   onOpenSessionModal,
   onRefreshData,
+  festiveTheme,
 }) => {
   const [quickJournal, setQuickJournal] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
@@ -62,6 +66,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Love of Learning & Festive Motivation Banner */}
+      <LoveToStudyBanner theme={festiveTheme} streakDays={analytics?.streak_days || 0} />
+
       {/* Top Banner / Today's Action Bar */}
       <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

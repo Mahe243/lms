@@ -6,6 +6,7 @@ import { QuickCaptureModal } from './components/QuickCaptureModal';
 import { StudySessionModal } from './components/StudySessionModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { DistractionFreeStudy } from './components/DistractionFreeStudy';
+import { FestiveBackground, FestiveTheme } from './components/FestiveBackground';
 
 import { DashboardView } from './views/DashboardView';
 import { CoursesView } from './views/CoursesView';
@@ -37,6 +38,14 @@ export function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark' || false;
   });
+  const [festiveTheme, setFestiveTheme] = useState<FestiveTheme>(() => {
+    return (localStorage.getItem('festive_theme') as FestiveTheme) || 'diwali';
+  });
+
+  const handleFestiveThemeChange = (newTheme: FestiveTheme) => {
+    setFestiveTheme(newTheme);
+    localStorage.setItem('festive_theme', newTheme);
+  };
 
   // Global Data
   const [user, setUser] = useState<User | null>(null);
@@ -172,7 +181,15 @@ export function App() {
   const totalCardsDue = decks.reduce((acc, d) => acc + (d.due_count || 0), 0);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#fcfbf9] text-[#1c1917] dark:bg-[#121214] dark:text-[#f4f4f5] font-sans antialiased">
+    <div className={`flex h-screen w-screen overflow-hidden font-sans antialiased relative transition-colors duration-500 ${
+      festiveTheme === 'diwali' ? 'bg-[#120a1f]/90 text-amber-50 dark' :
+      festiveTheme === 'christmas' ? 'bg-[#0a1513]/90 text-emerald-50 dark' :
+      festiveTheme === 'cosmic' ? 'bg-[#080914]/90 text-indigo-50 dark' :
+      'bg-[#fcfbf9] text-[#1c1917] dark:bg-[#121214] dark:text-[#f4f4f5]'
+    }`}>
+      {/* Dynamic Festive Atmospheric Particle Canvas */}
+      <FestiveBackground theme={festiveTheme} />
+
       {/* Distraction Free Focus Overlay */}
       {distractionFreeMode && (
         <DistractionFreeStudy
@@ -213,6 +230,8 @@ export function App() {
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode(!darkMode)}
           streakDays={analytics?.streak_days || 0}
+          festiveTheme={festiveTheme}
+          onChangeFestiveTheme={handleFestiveThemeChange}
         />
 
         {/* View Router Workspace */}
@@ -229,6 +248,7 @@ export function App() {
               onOpenQuickCapture={() => setQuickCaptureOpen(true)}
               onOpenSessionModal={() => setSessionModalOpen(true)}
               onRefreshData={loadWorkspaceData}
+              festiveTheme={festiveTheme}
             />
           )}
 

@@ -64,7 +64,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
   return (
     <aside
-      className={`h-screen border-r border-[#e8e2d7] dark:border-neutral-800 bg-[#f7f5f0] dark:bg-[#18181b] flex flex-col transition-all duration-300 z-30 select-none ${
+      className={`h-screen border-r border-[#e8e2d7]/80 dark:border-neutral-800/80 bg-[#f7f5f0]/90 dark:bg-[#18181b]/90 backdrop-blur-xl flex flex-col transition-all duration-300 z-30 select-none ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
