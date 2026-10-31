@@ -1,143 +1,127 @@
-# Personal LMS — Autonomous Learning Management System
+# LEARNOVA — Personal LMS Platform
 
-A complete, production-grade personal Learning Management System inspired by Moodle, built specifically for individual learners. The application integrates courses, modules, topics, rich notes, PDF/video materials, interactive FSRS flashcards, active learning, spaced revision, honest analytics, and an AI tutor grounded in your private materials.
+> **A high-cognition, editorial personal learning operating system for dual-track academic and technical mastery.**  
+> Crafted with Apple-like editorial precision, Notion-inspired modular restraint, and Spotify-style curated discovery.
+
+---
+
+## 🏛️ Architectural Overview & Design System
+
+Learnova is built upon the **Editorial Intellect** design system (`Playfair Display` + `Plus Jakarta Sans` + `JetBrains Mono` on warm mineral alabaster `#FDF8F5` and deep slate umber `#141413`).
+
+### 🌟 Core Modules & Screen Implementation
+
+1. **Editorial Dashboard (`HomeDashboard`)**
+   - Active Focus Protocol indicator with live sync metadata (`MBA + CS DUAL TRACK '28`).
+   - Vital Metrics:
+     - **Discipline:** 42-day streak (Top 1% cohort velocity).
+     - **Deep Work:** 2.5 / 3.0 Hours with dynamic progress bar.
+     - **Knowledge Yield:** 1,840 XP (+18% weekly growth).
+     - **Retained Nodes:** 14 Modules (94% recall benchmark).
+   - Primary Hero Card: *Latency Optimization in Enterprise RAG Pipelines* with 1-click resume straight into Classroom.
+   - Today's Focus Protocol: Priority time blocks across Central Banking Macroeconomics, Corporate DCF Valuation, and Product Sense.
+   - Fast Recall Log popover trigger.
+
+2. **Classroom Learning Experience (`ClassroomView`)**
+   - Course: *AI Product Management & LLM Systems* (CS-742).
+   - Lesson: *Hybrid Search Architecture: Blending Keyword Precision with Semantic Context*.
+   - Interactive Video Player: Chapter scrubber, speed selectors (1x, 1.25x, 1.5x), HD toggle, and status indicators.
+   - Content Tabs:
+     - **Deep-Dive Reader:** Comprehensive academic text on dense vector alphanumeric blind spots and lexical inverted indexes.
+     - **Trade-off Matrix:** Interactive benchmark table comparing BM25, Dense HNSW, Hybrid RRF, and SPLADE v3 on P99 latency and SKU recall.
+     - **RRF Python Engine:** Live executable code block with simulation execution output in console.
+     - **Notion Q&A Case Study:** Production architecture breakdown of enterprise search scaling.
+     - **Knowledge Check:** 3-question interactive comprehension quiz with immediate scoring and confetti celebration on 100%!
+   - Real-Time Lesson Notebook with automatic background saving.
+   - Collapsible Syllabus tracker.
+
+3. **AI Tutor: Professor Nova (`AITutorView`)**
+   - Personalized 1:1 Intellectual Sparring Partner & Cognitive Mentor.
+   - Specialized Personas:
+     - **Quant & Derivatives Specialist:** Black-Scholes PDE derivations, option Greeks ($\Delta, \Gamma, \Theta, \nu$), and volatility smiles.
+     - **Socratic Professor:** Probing conceptual intuition and first principles.
+     - **FAANG Staff Architect:** Distributed systems, Kafka, Flink, and RAG scaling.
+     - **Exam Drillmaster:** Timed pressure drills for RBI Grade B & CFA.
+   - Real-time conversational engine with LaTeX math rendering and code snippets.
+   - Quick Intuition Drill widget with instant verification.
+   - Optional **Google Gemini API Key integration** (configure in Settings for unrestricted live LLM generation).
+
+4. **Practice Arena: Timed Exam Simulator (`PracticeArenaView`)**
+   - Standardized Mock Exam: *RBI Grade B Phase II – Economic & Social Issues (ESI) + FinTech Full Mock #04*.
+   - Live 45-minute countdown clock with auto-evaluation.
+   - Dynamic Question Palette with Answered, Flagged, and Unvisited tracking.
+   - Full diagnostic evaluation on submission:
+     - Score & Percentile ranking (e.g. 96.4th percentile).
+     - Vulnerability Taxonomy highlighting weak areas.
+     - Detailed rubric explanations for every question.
+
+5. **Study Room & Focus Sanctuary (`StudyRoomView`)**
+   - Aesthetic circular Pomodoro Focus Clock with presets:
+     - `25m` Standard Pomodoro
+     - `50m` Deep Work Sprint
+     - `90m` Ultradian Flow State
+   - **Natively Synthesized Web Audio Soundscapes:**
+     - 🎧 **40Hz Gamma Binaural Beats:** Dual-frequency carrier waves for cognitive focus.
+     - 🌧️ **Library Skylight Rain:** Filtered pink-noise rainfall acoustics.
+     - ☕ **Cyberpunk Coffeehouse:** Warm atmospheric low-frequency murmur.
+     - 🌿 **Pure Pink Noise:** Balanced background masking.
+   - Sprint Milestones to-do checklist with task completion toggles.
+   - Thought Parker scratchpad to dump distracting thoughts without breaking flow.
+   - Circadian Cognitive Profile curve.
+   - Zen Fullscreen immersion mode.
+
+6. **Projects: Learn by Building (`ProjectsView`)**
+   - Multi-capstone switcher:
+     - **Capstone 1:** *Autonomous Agent Orchestration Platform for FinTech Credit Underwriting*.
+     - **Capstone 2:** *Uber Health — Non-Emergency Medical Transportation (NEMT) PRD*.
+   - 4 Working Workspaces:
+     - **PRD & Architecture:** Full system design, SLA circuit breakers, and topology diagram.
+     - **Live Python Engine:** Interactive sandbox running multi-agent consensus, DSCR checks, and Cornish-Fisher VaR models.
+     - **Interactive Streamlit Demo:** Dynamic loan calculator with sliders for Revenue, Credit Score, Debt Service, and Loan Amount.
+     - **Investment Committee Memo:** Market sizing, risk mitigation, and rubric scoring (94/100).
+
+7. **My Library: Second Brain & Vault (`LibraryView`)**
+   - Filterable taxonomy across Books, Research Papers, Lecture Notes, and Cheat Sheets.
+   - Instant search across titles, authors, and synapse tags (`#derivatives`, `#rag`, `#system-design`, `#macroeconomics`).
+   - Rich Document Reader Drawer with standard academic citations and study notes.
+   - **Spaced Repetition (SRS) Flashcard Trainer:**
+     - Keyboard flip (Spacebar / click).
+     - Rating algorithms (`Again`, `Hard`, `Good`, `Easy`) updating spaced review intervals.
+
+8. **Goals & Mastery Matrix (`GoalsProgressView`)**
+   - 3 Domain Mastery Trees:
+     - MBA Product Management & Growth (84% Mastery)
+     - Quantitative Finance & Central Banking (72% Mastery)
+     - AI Systems & Distributed Engineering (88% Mastery)
+   - Interactive 364-day GitHub-style Deep Work Consistency Heatmap with hover tooltips displaying date and hours logged.
+   - Level 16 Cognitive Architect progression.
+
+9. **Global Superpowers**
+   - **Command Palette (`⌘K` / `Ctrl+K`):** Global fuzzy launcher to navigate to any screen, course, or tool from anywhere in the platform.
+   - **Fast Recall Quick Log:** Pinned hero and header shortcut to record sudden intellectual flashes into your vault (+25 XP).
+   - **Persistent Focus Timer:** Header timer that stays synced across page transitions.
+   - **Dark & Light Mode:** Seamless toggle between warm mineral Alabaster (`#FDF8F5`) and deep slate Umber (`#141413`).
+   - **Local Storage Persistence:** All progress, notes, tasks, flashcard ratings, and streak data persist across browser refreshes.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### ⚡ Option A: 1-Click Launch (Recommended)
-Simply double-click **`start.bat`** (or run `.\start.ps1` in PowerShell) in the root folder. It will automatically:
+### ⚡ 1-Click Launch (Recommended)
+Simply double-click **`start.bat`** (or run `.\start.ps1` in PowerShell). It will automatically:
 1. Start the FastAPI backend on `http://127.0.0.1:8000`.
 2. Start the Vite React frontend on `http://localhost:5173`.
-3. Open `http://localhost:5173` in your default web browser.
+3. Open `http://localhost:5173` in your default browser.
 
----
-
-### 💻 Option B: Manual Terminal Launch
-
-### 1. Prerequisites
-- **Python 3.11+**
-- **Node.js 18+** & npm
-
-### 2. Backend Setup
+### 💻 Manual Launch
 ```bash
-# Navigate to the workspace root
-cd c:\Users\reddy\Downloads\lms
-
-# Activate the existing virtual environment (or create one)
+# Terminal 1: Backend
 .\.venv\Scripts\Activate.ps1
-
-# Run the FastAPI server
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
-```
-The backend API is now running at `http://127.0.0.1:8000` with SQLite WAL mode persistence at `data/lms.db`.
 
-### 3. Frontend Setup
-```bash
-# Open a new terminal and navigate to frontend/
+# Terminal 2: Frontend
 cd frontend
-
-# Run the Vite development server
 npm run dev
 ```
-Open **`http://localhost:5173`** in your browser. All API requests are proxied directly to the backend.
 
----
-
-## 🛠️ Architecture & Tech Stack
-
-- **Backend**:
-  - **FastAPI** with Pydantic V2 schemas and SQLAlchemy ORM.
-  - **SQLite** with Write-Ahead Logging (`WAL`) and foreign key constraints.
-  - **FSRS / SM-2 Engine**: Spaced repetition algorithm for flashcards and topic revision schedules.
-  - **Local RAG Service**: Term-overlap TF/IDF text retrieval with source document and timestamp citations.
-  - **Activity Tracker**: Non-overlapping interval merger (no double-counting), 30-minute visit sessionization, and honest 15-minute study streaks.
-  - **Document Extractors**: `pypdf` for searchable text extraction, WebVTT/SRT transcript parser.
-- **Frontend**:
-  - **React 19** with **TypeScript** and **Vite**.
-  - **Tailwind CSS** with warm off-white tones (`#fdfbf7`, `#f7f4ee`) and dark mode support.
-  - **Lucide Icons** and **Canvas Confetti**.
-  - **Keyboard Navigation**: `Ctrl+K` Global Search, `Ctrl+Q` Quick Capture.
-
----
-
-## 🌟 Core Features & Modules
-
-1. **Personal Dashboard**:
-   - Today's study plan, continuation queue, upcoming deadlines, flashcards due for review.
-   - Distinct, honest metrics: study-day streak, active time today/this week, visit counts, and course completion.
-2. **Course & Topic Hierarchy**:
-   - `Course` → `Module` → `Topic` → `Subtopic` nested tree.
-   - Non-optional topic completion percentage calculated strictly without inflation.
-   - Understanding levels (`unfamiliar`, `basic`, `comfortable`, `confident`).
-3. **Notes & Knowledge Management**:
-   - Rich-text editor with headings, checklists, callouts, and code blocks.
-   - Templates for Lecture Notes, Reading Notes, Video Notes, Formula Sheets, Case Analysis, and Weekly Reviews.
-   - Version history snapshots, trash recovery, backlinks, and text-selection actions.
-4. **Resource Library & Video Learning**:
-   - Support for PDFs, videos, articles, audio, and documents.
-   - Automatic PDF text extraction and WebVTT/SRT transcript parsing.
-   - Interactive video player with timestamped notes, comments, and resume position tracking.
-5. **Interactive Flashcards (FSRS / SM-2)**:
-   - Basic, Cloze deletion (`{{c1::term}}`), and Reversed card formats.
-   - 4-grade rating: *Again*, *Hard*, *Good*, *Easy* with instant 1-click Undo.
-   - AI draft cards require explicit learner review before joining study decks.
-6. **Practice & Quizzes**:
-   - Multiple choice, multi-select, and numerical questions with configurable tolerance.
-   - Historical attempt snapshots and Mistake Log for targeted re-practice.
-7. **Active Learning Suite**:
-   - **Teach-Back Evaluation**: Explain concepts in your own words with rubric self-scoring.
-   - **Formula Practice**: Interactive symbol & formula recall drills.
-   - **Concept Matrices**: Compare and contrast related ideas side-by-side.
-   - **Dynamic Glossary**: Searchable, course-linked vocabulary index.
-8. **Study Session Tracker & Focus Mode**:
-   - Pomodoro (25/5m) and Free Focus stopwatch with cross-refresh state persistence.
-   - Post-session 4-question reflection (Goal achieved, focus rating, challenges, next step).
-   - Distraction-Free Study mode with quick scratchpad and embedded AI tutor drawer.
-9. **Doubt Inbox**:
-   - Central triage for questions raised across courses, videos, notes, or quiz errors.
-   - Direct escalation to the AI tutor with preserved context.
-10. **Study Planner & Kanban Tasks**:
-    - Calendar with conflict detection and exam countdown widgets.
-    - Kanban task board (`To Do`, `In Progress`, `Review`, `Done`) with assignment submission tracking.
-11. **Topic Spaced Revision**:
-    - Intervals: 1 day, 3 days, 7 days, 14 days, 30 days.
-    - Topic readiness score based on last revision recency.
-12. **Analytics & Learning Journal**:
-    - 90-day GitHub-style study heatmap.
-    - Course time allocation and quiz accuracy.
-    - Daily reflection journal with mood tracking.
-13. **Data Portability & 1-Click Demo Management**:
-    - Complete workspace JSON backup & restore.
-    - ZIP archive export of all notes as Markdown files with YAML frontmatter.
-    - CSV export of activity events and study sessions.
-    - 1-click **Clean Demo Data** button in Settings (deletes only `is_demo=true` data without affecting personal notes).
-
----
-
-## 🤖 AI Tutor Configuration
-
-The AI Tutor is designed to assist you by grounding its responses directly in your uploaded PDFs, notes, and video transcripts, citing the exact document and page/timestamp.
-
-### Setup Instructions
-1. Open the application and navigate to **Settings** (`/settings`) → **AI Configuration**.
-2. Select your provider (**Google Gemini** or **OpenAI**).
-3. Enter your API key and click **Save Settings**.
-4. Alternatively, you can create a `.env` file in the project root:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   # or
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-*(Note: If no API key is provided, the AI Tutor displays a clear setup message explaining how to enable it, avoiding hallucinations or fabricated facts).*
-
----
-
-## 🧪 Running Automated Tests
-
-Run the backend unit test suite:
-```bash
-.\.venv\Scripts\python -m pytest backend/tests
-```
-All 14 comprehensive tests cover progress calculation, FSRS spaced repetition, non-overlapping active time deduplication, quiz grading with tolerance, and full workspace JSON backup & restore.
+Visit **`http://localhost:5173`** to enter the Learnova Personal LMS Platform.

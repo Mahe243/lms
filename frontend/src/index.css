@@ -3,13 +3,25 @@
 @tailwind utilities;
 
 @layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+
   body {
-    @apply bg-[#fcfbf9] text-[#1c1917] antialiased selection:bg-indigo-500 selection:text-white dark:bg-[#121214] dark:text-[#f4f4f5];
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overscroll-behavior: none;
+    background-color: #fdf8f5;
+    color: #1c1b19;
+  }
+
+  .dark body {
+    background-color: #141413;
+    color: #f5f3ef;
   }
 }
 
-/* Custom scrollbars */
+/* Custom subtle scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -18,35 +30,33 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.4);
+  background: rgba(119, 117, 135, 0.2);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 114, 128, 0.7);
+  background: rgba(119, 117, 135, 0.35);
 }
 
-/* Festive glass card enhancements */
-.festive-card {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.festive-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.15), 0 8px 10px -6px rgba(245, 158, 11, 0.1);
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.dark .glass-panel {
+  background: rgba(30, 30, 30, 0.85);
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
-  }
+/* KaTeX / math styles */
+.math-display {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.01em;
 }
-
-.festive-glow {
-  animation: pulseGlow 3s infinite ease-in-out;
-}
-
