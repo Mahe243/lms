@@ -4,6 +4,22 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://lms-xg9e-p78vtnci7-reddynaga299-2026.vercel.app/api/$1"
+    },
+    {
+      "source": "/health",
+      "destination": "https://lms-xg9e-p78vtnci7-reddynaga299-2026.vercel.app/health"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://lms-xg9e-p78vtnci7-reddynaga299-2026.vercel.app/docs"
+    },
+    {
+      "source": "/openapi.json",
+      "destination": "https://lms-xg9e-p78vtnci7-reddynaga299-2026.vercel.app/openapi.json"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

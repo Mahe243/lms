@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
@@ -55,6 +55,7 @@ if settings.ALLOWED_ORIGINS:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=approved_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,10 +105,35 @@ def health_check():
     }
 
 @app.get("/")
-def root():
+@app.get("/index.html")
+@app.get("/api")
+@app.get("/api/")
+@app.get("/api/index")
+@app.get("/api/index.py")
+def root_handler(request: Request):
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        return RedirectResponse(url="https://lms-yrpn.vercel.app/", status_code=307)
     return {
-        "message": f"Welcome to {settings.PROJECT_NAME} API",
-        "docs_url": "/docs"
+        "status": "online",
+        "app": settings.PROJECT_NAME,
+        "version": settings.PROJECT_VERSION,
+        "docs_url": "/docs",
+        "health_url": "/health",
+        "frontend_url": "https://lms-yrpn.vercel.app/",
+        "endpoints": [
+            "/api/courses",
+            "/api/notes",
+            "/api/resources",
+            "/api/ai/chat",
+            "/api/flashcards",
+            "/api/quizzes",
+            "/api/study-sessions",
+            "/api/activity",
+            "/api/tasks",
+            "/api/goals",
+            "/health"
+        ]
     }
 
 if __name__ == "__main__":

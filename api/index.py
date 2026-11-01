@@ -8,4 +8,18 @@ if str(root_dir) not in sys.path:
 
 from backend.main import app
 
-# Vercel serverless ASGI handler
+class VercelPathNormalizer:
+    """Normalizes ASGI scope path when Vercel rewrites to /api/index.py or /api/index"""
+    def __init__(self, asgi_app):
+        self.asgi_app = asgi_app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if path in ["/api/index.py", "/api/index", "/api/index.py/"]:
+                scope["path"] = "/"
+            elif path.startswith("/api/index.py/"):
+                scope["path"] = path.replace("/api/index.py", "", 1)
+        await self.asgi_app(scope, receive, send)
+
+handler = VercelPathNormalizer(app)
