@@ -308,6 +308,14 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     { title: '3Blue1Brown: Neural Networks', url: 'https://www.youtube.com/watch?v=aircAruvnKk', tag: 'Math' }
   ];
 
+  const handleOpenPopupPlayer = () => {
+    let url = activeVideoUrl.trim();
+    if (!url.startsWith('http')) {
+      url = `https://www.youtube.com/watch?v=${url}`;
+    }
+    window.open(url, 'LMS_Floating_Player', 'width=960,height=580,menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+  };
+
   const currentCourse = courses.find((c) => c.id === activeCourseId) || courses[0];
 
   return (
@@ -404,6 +412,30 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
             </div>
 
             <div className="flex items-center gap-2">
+              {isYouTube && (
+                <>
+                  <a
+                    href={activeVideoUrl.startsWith('http') ? activeVideoUrl : `https://www.youtube.com/watch?v=${activeVideoUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 rounded-lg bg-red-600/10 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-400 transition-all text-xs font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                    title="Open this video directly on YouTube"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                    <span>Watch on YouTube</span>
+                  </a>
+
+                  <button
+                    onClick={handleOpenPopupPlayer}
+                    className="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm"
+                    title="Open floating player in separate window so you can watch while taking notes"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">picture_in_picture_alt</span>
+                    <span>Popup Player</span>
+                  </button>
+                </>
+              )}
+
               <button
                 onClick={() => setShowCustomUrlInput(!showCustomUrlInput)}
                 className="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm"
@@ -672,6 +704,37 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               </>
             )}
           </div>
+
+          {/* Embed Restriction Fallback Helper Banner */}
+          {isYouTube && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 animate-fadeIn">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
+                <span className="leading-snug">
+                  If video says <strong>"Video unavailable / blocked on this website by content owner (e.g. ETPL)"</strong>:
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleOpenPopupPlayer}
+                  className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm transition-all"
+                  title="Open in compact floating window"
+                >
+                  <span className="material-symbols-outlined text-[15px]">picture_in_picture_alt</span>
+                  <span>Open Floating Player</span>
+                </button>
+                <a
+                  href={activeVideoUrl.startsWith('http') ? activeVideoUrl : `https://www.youtube.com/watch?v=${activeVideoUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-bold text-xs flex items-center gap-1 text-amber-950 dark:text-amber-100 transition-all"
+                >
+                  <span>Watch on YouTube</span>
+                  <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Curated YouTube Lectures Quick-Pick */}
           <div className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/30 text-xs overflow-x-auto">

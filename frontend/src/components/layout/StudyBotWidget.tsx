@@ -83,6 +83,29 @@ export const StudyBotWidget: React.FC = () => {
       return;
     }
 
+    if (lower.includes('blocked') || lower.includes('etpl') || lower.includes('unavailable')) {
+      setTimeout(() => {
+        setIsTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `bot-${Date.now()}`,
+            sender: 'bot',
+            text: `### Why Does YouTube Say "Video Unavailable / Blocked by ETPL"?\n\nCertain YouTube channels or copyright holders (such as ETPL or commercial media companies) have turned off the **"Allow embedding"** setting in YouTube Studio.\n\nYouTube policy prevents these specific videos from playing inside a third-party website's iframe.\n\n### Solution:\n1. Click **'Watch on YouTube'** or **'Popup Player'** in the Classroom video toolbar.\n2. This opens a synchronized floating player, allowing you to watch the video without restrictions while keeping your LMS notes and quiz open!`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            actionButton: {
+              label: 'Go to Classroom Player',
+              action: () => {
+                setCurrentPath('classroom');
+                setIsOpen(false);
+              },
+            },
+          },
+        ]);
+      }, 500);
+      return;
+    }
+
     if (lower.includes('youtube') || lower.includes('watch video') || lower.includes('play video')) {
       setTimeout(() => {
         setIsTyping(false);
