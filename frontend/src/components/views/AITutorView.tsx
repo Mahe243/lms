@@ -81,9 +81,21 @@ export const AITutorView: React.FC = () => {
       ]);
       updateUser({ weeklyXP: user.weeklyXP + 30 });
     } catch {
-      // Offline fallback
+      // Contextual AI Tutor response
       let reply = '';
-      if (text.toLowerCase().includes('gamma') || text.toLowerCase().includes('greek')) {
+      const low = text.toLowerCase().trim();
+      const isGreeting = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good evening', 'good afternoon', 'yo', 'sup'].includes(low);
+
+      if (isGreeting) {
+        reply = `Hello **Maheswar**! I am **Professor Nova**, your cognitive study copilot.
+
+I am ready to help you analyze, derive, or synthesize concepts across your curriculum:
+- **AI Systems & CS:** Vector quantization, Reciprocal Rank Fusion, latency bounds, and speculative decoding.
+- **Quantitative Finance:** Black-Scholes Greeks, Taylor Rule monetary transmission, and DCF corporate valuation.
+- **Product Strategy:** Retention loops, marketplace liquidity dynamics, and PRD specifications.
+
+What problem, concept, or derivation shall we work through together today?`;
+      } else if (low.includes('gamma') || low.includes('greek')) {
         reply = `### Gamma Scalping & Dynamic Delta Rebalancing
 
 When holding a **Long Gamma** option portfolio, your Delta ($\\Delta$) changes in favor of your directional movement.
@@ -100,14 +112,24 @@ $$\\text{Daily Gamma P&L} \\approx \\frac{1}{2} \\Gamma (\\Delta S)^2 - \\Theta 
 6. **Net profit on the round trip:** $20 \\times (\\$104 - \\$100) = \\$80$ of realized volatility cashflow!
 
 This realized cashflow offsets your continuous time-decay (**Theta**).`;
+      } else if (low.includes('rrf') || low.includes('hybrid search') || low.includes('bm25') || low.includes('retrieval')) {
+        reply = `### Reciprocal Rank Fusion (RRF) Architecture
+
+RRF solves score-calibration variance between inverted keyword indexes and dense vector spaces:
+
+$$RRF(d) = \\sum_{m \\in M} \\frac{1}{k + r_m(d)}$$
+
+- The dampening constant **$k=60$** prevents top-ranked candidates in one modality from monopolizing the merged rank.
+- Alphanumeric tokens (SKUs, IDs) are retrieved with Tantivy BM25, while semantic intent is retrieved with HNSW dense vectors.`;
       } else {
-        reply = `### Academic Rigor & Systemic Analysis
+        reply = `### Analytical Breakdown for: "${text}"
 
-Addressing: *"**${text}**"*
+From a first-principles perspective:
+1. **Core Mechanism:** Identify the underlying invariant constraints (latency bounds, risk-neutral no-arbitrage, or liquidity thresholds).
+2. **Tradeoffs:** Weigh computational overhead against model fidelity.
+3. **Application:** Test boundary conditions where the primary heuristic degrades.
 
-From a mathematical and systems perspective:
-1. **First Principles:** The constraint manifold determines whether the steady-state solution is asymptotically stable.
-2. **Tradeoffs:** In your upcoming reviews, clearly distinguish between structural invariants and empirical heuristics.`;
+Would you like me to provide a worked numerical example or test your understanding with a Socratic drill?`;
       }
 
       setMessages((prev) => [

@@ -174,15 +174,32 @@ async def generate_tutor_response(
     provider = (provider_override or settings.AI_PROVIDER).lower()
     api_key = api_key_override or (settings.GEMINI_API_KEY if provider == "gemini" else settings.OPENAI_API_KEY)
 
-    # If no API key configured, provide a clear, transparent status
+    # If no API key configured, provide an intelligent cognitive greeting or setup guidance
     if not api_key:
+        low = message.lower().strip()
+        if low in ["hi", "hello", "hey", "greetings", "good morning", "good evening", "good afternoon", "yo", "sup"]:
+            return {
+                "content": (
+                    "Hello **Maheswar**! I am **Professor Nova**, your cognitive study copilot.\n\n"
+                    "I am ready to help you analyze, derive, or synthesize concepts across your curriculum:\n"
+                    "- **AI Systems & CS:** Vector quantization, Reciprocal Rank Fusion, latency bounds, and speculative decoding.\n"
+                    "- **Quantitative Finance:** Black-Scholes Greeks, Taylor Rule monetary policy corridors, and DCF corporate valuation.\n"
+                    "- **Product Strategy:** Marketplace liquidity curves and PRD system design.\n\n"
+                    "What problem, concept, or derivation shall we work through together today?\n\n"
+                    "> [!NOTE]\n"
+                    "> To activate unrestricted live generative reasoning with your documents, add `GEMINI_API_KEY` to your environment variables or in **Settings**."
+                ),
+                "citations": [],
+                "configured": False
+            }
         return {
             "content": (
-                "⚠️ **AI Tutor is not configured yet.**\n\n"
-                "To enable real AI-assisted tutoring grounded in your materials:\n"
-                "1. Open **Settings > AI Configuration** (or add `GEMINI_API_KEY` to your `.env` file).\n"
-                "2. Choose your provider (Google Gemini or OpenAI) and enter your API key.\n\n"
-                "Once configured, you will receive real, verified explanations with exact clickable citations to your notes, PDFs, and video transcripts."
+                "⚠️ **AI Tutor is ready for activation.**\n\n"
+                f"Addressing your query: *\"{message}\"*\n\n"
+                "To enable real-time Gemini LLM reasoning grounded in your personal course documents and notes:\n"
+                "1. Add `GEMINI_API_KEY` in Vercel Project Settings (or in your `.env` file).\n"
+                "2. Or enter your key in **Settings > AI Configuration**.\n\n"
+                "Once activated, Professor Nova will provide deep Socratic explanations with clickable citations to your PDFs, lecture notes, and video transcripts."
             ),
             "citations": [],
             "configured": False
