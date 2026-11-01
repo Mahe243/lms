@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { SoundscapeType } from '../../utils/soundscapes';
+import { studySessionsApi } from '../../api';
 
 export const StudyRoomView: React.FC = () => {
   const {
@@ -23,6 +24,29 @@ export const StudyRoomView: React.FC = () => {
 
   const [newTaskInput, setNewTaskInput] = useState('');
   const [isZenMode, setIsZenMode] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  const handleToggleTimer = async () => {
+    if (!timerRunning) {
+      try {
+        const sess = await studySessionsApi.startSession({
+          session_type: timerMode,
+          planned_duration_mins: timerMode === 'pomodoro' ? 25 : timerMode === 'deep_work' ? 50 : 90,
+          goal: 'Deep Focus Interval',
+        });
+        if (sess && sess.id) {
+          setActiveSessionId(sess.id);
+        }
+      } catch (err) {
+        console.log('Started timer in local offline mode:', err);
+      }
+    } else if (activeSessionId) {
+      try {
+        await studySessionsApi.updateSession(activeSessionId, { status: 'paused' });
+      } catch {}
+    }
+    toggleTimer();
+  };
 
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -131,7 +155,7 @@ export const StudyRoomView: React.FC = () => {
               </button>
 
               <button
-                onClick={toggleTimer}
+                onClick={handleToggleTimer}
                 className="px-8 py-3.5 rounded-full bg-primary hover:bg-primary-container text-white font-bold text-sm shadow-lg hover:shadow-primary/30 flex items-center gap-2 transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[24px]">

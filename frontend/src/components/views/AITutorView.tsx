@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { ChatMessage } from '../../types';
 import { initialChatMessages } from '../../data/mockData';
+import { aiApi } from '../../api/aiApi';
 
 export const AITutorView: React.FC = () => {
-  const { user, geminiApiKey, updateUser } = useApp();
+  const { user, updateUser, activeCourseId } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [persona, setPersona] = useState<'socratic' | 'quant' | 'architect' | 'drill'>('quant');
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [selectedDrillAnswer, setSelectedDrillAnswer] = useState<number | null>(null);
   const [isDrillSubmitted, setIsDrillSubmitted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -33,7 +35,7 @@ export const AITutorView: React.FC = () => {
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputValue;
-    if (!text.trim()) return;
+    if (!text.trim() || isTyping) return;
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -46,39 +48,40 @@ export const AITutorView: React.FC = () => {
     if (!textToSend) setInputValue('');
     setIsTyping(true);
 
-    // If user configured custom Gemini API key
-    if (geminiApiKey) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `You are Professor Nova, an elite academic cognitive tutor for an ambitious student in MBA and Computer Science. Respond thoroughly with academic rigor, LaTeX formulas, code, or structured bullet points.\n\nUser Question: ${text}` }] }]
-          })
-        });
-        const data = await response.json();
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I processed your request, Maheswar. Let's delve into the underlying principles.";
-        
-        setIsTyping(false);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `msg-${Date.now() + 1}`,
-            sender: 'tutor',
-            text: replyText,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          }
-        ]);
-        updateUser({ weeklyXP: user.weeklyXP + 30 });
-        return;
-      } catch (err) {
-        console.error('Gemini API call failed, falling back to local reasoning:', err);
-      }
-    }
+    const promptTypeMap: Record<string, any> = {
+      quant: 'worked_example',
+      socratic: 'socratic',
+      architect: 'teach_concept',
+      drill: 'quick_quiz',
+    };
 
-    // Intelligent built-in cognitive response simulation
-    setTimeout(() => {
-      setIsTyping(false);
+    try {
+      // Connect directly to backend RAG AI Tutor endpoint
+      const response = await aiApi.chatWithTutor({
+        conversation_id: conversationId,
+        message: text.trim(),
+        course_id: activeCourseId,
+        context_mode: 'global',
+        prompt_type: promptTypeMap[persona] || 'standard',
+      });
+
+      if (response.conversation_id) {
+        setConversationId(response.conversation_id);
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: response.message_id || `msg-${Date.now() + 1}`,
+          sender: 'tutor',
+          text: response.content,
+          citations: response.citations,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+      updateUser({ weeklyXP: user.weeklyXP + 30 });
+    } catch {
+      // Offline fallback
       let reply = '';
       if (text.toLowerCase().includes('gamma') || text.toLowerCase().includes('greek')) {
         reply = `### Gamma Scalping & Dynamic Delta Rebalancing
@@ -96,36 +99,15 @@ $$\\text{Daily Gamma P&L} \\approx \\frac{1}{2} \\Gamma (\\Delta S)^2 - \\Theta 
 5. If the stock retreats back to **\\$100**, your Delta drops back to +0.50, and you **buy back those 20 shares at \\$100**.
 6. **Net profit on the round trip:** $20 \\times (\\$104 - \\$100) = \\$80$ of realized volatility cashflow!
 
-This realized cashflow offsets your continuous time-decay (**Theta**). If realized volatility exceeds implied volatility, your net Gamma scalping P&L is strictly positive.`;
-      } else if (text.toLowerCase().includes('black-scholes') || text.toLowerCase().includes('pde')) {
-        reply = `### Intuitive Derivation of the Black-Scholes PDE
-
-The fundamental breakthrough of Black, Scholes, and Merton was constructing a **riskless hedged portfolio** $\\Pi$:
-
-$$\\Pi = V - \\Delta S$$
-
-By setting $\\Delta = \\frac{\\partial V}{\\partial S}$, the stochastic Brownian shock $dW$ in Ito's Lemma perfectly vanishes:
-
-$$d\\Pi = \\left( \\frac{\\partial V}{\\partial t} + \\frac{1}{2}\\sigma^2 S^2 \\frac{\\partial^2 V}{\\partial S^2} \\right) dt$$
-
-Because the portfolio is instantaneously completely deterministic and riskless, to prevent arbitrage it **must yield the risk-free rate** $r$:
-
-$$d\\Pi = r\\Pi dt = r(V - \\Delta S) dt$$
-
-Equating the two yields the immortal Black-Scholes-Merton Partial Differential Equation:
-
-$$\\frac{\\partial V}{\\partial t} + rS\\frac{\\partial V}{\\partial S} + \\frac{1}{2}\\sigma^2 S^2 \\frac{\\partial^2 V}{\\partial S^2} - rV = 0$$
-
-Notice the absence of the stock's expected growth rate $\\mu$—proving derivative prices depend only on volatility $\\sigma$ and risk-free interest $r$!`;
+This realized cashflow offsets your continuous time-decay (**Theta**).`;
       } else {
-        reply = `### Analysis & Core Principles
+        reply = `### Academic Rigor & Systemic Analysis
 
 Addressing: *"**${text}**"*
 
-From a systems and financial perspective, consider the primary trade-offs:
-1. **Mathematical Mechanics:** In high-dimensional optimization, local curvature determines stability. Every convex objective requires continuous parameter validation.
-2. **Operational Latency vs Accuracy:** Whether balancing BM25 inverted indexes against HNSW graphs or balancing Delta-hedging costs against Gamma risk, discrete discretization error is bounded by $O(\\Delta t)$.
-3. **Synthesis:** In your upcoming RBI Grade B mock or Capstone PRD, always articulate the boundary conditions where the primary model degrades.`;
+From a mathematical and systems perspective:
+1. **First Principles:** The constraint manifold determines whether the steady-state solution is asymptotically stable.
+2. **Tradeoffs:** In your upcoming reviews, clearly distinguish between structural invariants and empirical heuristics.`;
       }
 
       setMessages((prev) => [
@@ -137,8 +119,10 @@ From a systems and financial perspective, consider the primary trade-offs:
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
-      updateUser({ weeklyXP: user.weeklyXP + 30 });
-    }, 800);
+      updateUser({ weeklyXP: user.weeklyXP + 15 });
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleDrillSubmit = (correctIdx: number) => {

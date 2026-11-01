@@ -62,6 +62,10 @@ class TopicCreate(BaseModel):
     is_optional: Optional[bool] = False
     order_index: Optional[int] = 0
     personal_questions: Optional[List[str]] = []
+    video_url: Optional[str] = None
+    markdown_content: Optional[str] = ""
+    key_takeaways: Optional[List[str]] = []
+    quiz_data: Optional[List[Dict[str, Any]]] = []
 
 class TopicUpdate(BaseModel):
     title: Optional[str] = None
@@ -75,6 +79,10 @@ class TopicUpdate(BaseModel):
     personal_questions: Optional[List[str]] = None
     next_revision_at: Optional[datetime] = None
     last_studied_at: Optional[datetime] = None
+    video_url: Optional[str] = None
+    markdown_content: Optional[str] = None
+    key_takeaways: Optional[List[str]] = None
+    quiz_data: Optional[List[Dict[str, Any]]] = None
 
 class TopicOut(BaseModel):
     id: str
@@ -93,6 +101,11 @@ class TopicOut(BaseModel):
     next_revision_at: Optional[datetime]
     revision_interval_days: int
     revision_count: int
+    video_url: Optional[str] = None
+    markdown_content: Optional[str] = ""
+    key_takeaways: Optional[List[str]] = []
+    quiz_data: Optional[List[Dict[str, Any]]] = []
+    is_completed: bool = False
     subtopics: List[SubtopicOut] = []
     created_at: datetime
     updated_at: datetime
@@ -131,6 +144,7 @@ class CourseCreate(BaseModel):
     exam_date: Optional[str] = None
     priority: Optional[str] = "medium"
     cover_color: Optional[str] = "#4f46e5"
+    code: Optional[str] = "CS-101"
     tags: Optional[List[str]] = []
     syllabus: Optional[str] = ""
     learning_goals: Optional[List[str]] = []
@@ -146,6 +160,7 @@ class CourseUpdate(BaseModel):
     exam_date: Optional[str] = None
     priority: Optional[str] = None
     cover_color: Optional[str] = None
+    code: Optional[str] = None
     tags: Optional[List[str]] = None
     syllabus: Optional[str] = None
     learning_goals: Optional[List[str]] = None
@@ -174,6 +189,11 @@ class CourseOut(BaseModel):
     exam_date: Optional[str]
     priority: str
     cover_color: str
+    code: str = "CS-101"
+    title: Optional[str] = None
+    track: Optional[str] = None
+    accentColor: Optional[str] = None
+    progress_percentage: Optional[float] = None
     tags: List[str]
     syllabus: str
     learning_goals: List[str]

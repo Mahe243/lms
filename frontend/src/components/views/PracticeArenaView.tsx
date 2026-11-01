@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { mockExamData } from '../../data/mockData';
 import confetti from 'canvas-confetti';
+import { quizzesApi } from '../../api';
 
 export const PracticeArenaView: React.FC = () => {
   const { user, updateUser, setCurrentPath } = useApp();
@@ -62,6 +63,13 @@ export const PracticeArenaView: React.FC = () => {
     updateUser({
       weeklyXP: user.weeklyXP + earnedXP,
     });
+
+    // Record quiz attempt to database
+    quizzesApi.submitQuiz({
+      course_id: 'monetary-policy',
+      duration_seconds: (45 * 60) - secondsLeft,
+      answers: answers,
+    }).catch((e) => console.log('Saved quiz result locally:', e));
 
     confetti({
       particleCount: 100,

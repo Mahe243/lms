@@ -53,17 +53,23 @@ def calculate_course_progress(db: Session, course_id: str) -> CourseProgress:
     )
 
 def course_to_dict(c: Course, progress: Optional[CourseProgress] = None) -> dict:
+    pct = progress.completion_percentage if progress else 0.0
     return {
         "id": c.id,
         "name": c.name,
-        "description": c.description,
+        "title": c.name,
+        "code": getattr(c, "code", "CS-101") or "CS-101",
         "category": c.category,
+        "track": c.category,
+        "description": c.description,
         "instructor": c.instructor,
         "start_date": c.start_date,
         "target_completion_date": c.target_completion_date,
         "exam_date": c.exam_date,
         "priority": c.priority,
         "cover_color": c.cover_color,
+        "accentColor": c.cover_color,
+        "progress_percentage": pct,
         "tags": json.loads(c.tags) if c.tags else [],
         "syllabus": c.syllabus,
         "learning_goals": json.loads(c.learning_goals) if c.learning_goals else [],
@@ -94,6 +100,11 @@ def course_to_dict(c: Course, progress: Optional[CourseProgress] = None) -> dict
                         "is_optional": t.is_optional,
                         "order_index": t.order_index,
                         "personal_questions": json.loads(t.personal_questions) if t.personal_questions else [],
+                        "video_url": getattr(t, "video_url", None),
+                        "markdown_content": getattr(t, "markdown_content", "") or "",
+                        "key_takeaways": json.loads(t.key_takeaways) if getattr(t, "key_takeaways", None) else [],
+                        "quiz_data": json.loads(t.quiz_data) if getattr(t, "quiz_data", None) else [],
+                        "is_completed": t.status == "completed",
                         "last_studied_at": t.last_studied_at,
                         "next_revision_at": t.next_revision_at,
                         "revision_interval_days": t.revision_interval_days,
@@ -173,6 +184,7 @@ def update_course(course_id: str, data: CourseUpdate, db: Session = Depends(get_
     if data.exam_date is not None: c.exam_date = data.exam_date
     if data.priority is not None: c.priority = data.priority
     if data.cover_color is not None: c.cover_color = data.cover_color
+    if data.code is not None: c.code = data.code
     if data.tags is not None: c.tags = json.dumps(data.tags)
     if data.syllabus is not None: c.syllabus = data.syllabus
     if data.learning_goals is not None: c.learning_goals = json.dumps(data.learning_goals)
@@ -287,6 +299,10 @@ def update_topic(topic_id: str, data: TopicUpdate, db: Session = Depends(get_db)
     if data.personal_questions is not None: t.personal_questions = json.dumps(data.personal_questions)
     if data.next_revision_at is not None: t.next_revision_at = data.next_revision_at
     if data.last_studied_at is not None: t.last_studied_at = data.last_studied_at
+    if data.video_url is not None: t.video_url = data.video_url
+    if data.markdown_content is not None: t.markdown_content = data.markdown_content
+    if data.key_takeaways is not None: t.key_takeaways = json.dumps(data.key_takeaways)
+    if data.quiz_data is not None: t.quiz_data = json.dumps(data.quiz_data)
 
     db.commit()
     db.refresh(t)

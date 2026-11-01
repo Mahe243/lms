@@ -70,6 +70,7 @@ export interface ChatMessage {
   sender: 'user' | 'tutor';
   text: string;
   timestamp: string;
+  citations?: Array<{ source_title: string; text_snippet: string; score?: number }>;
   latex?: string[];
   code?: string;
   quizDrill?: {

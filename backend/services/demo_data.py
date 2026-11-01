@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 from backend.models import (
-    Course, Module, Topic, Subtopic, Note, NoteVersion, Resource, ResourceChunk,
+    User, Course, Module, Topic, Subtopic, Note, NoteVersion, Resource, ResourceChunk,
     Comment, FlashcardDeck, Flashcard, FlashcardReview, QuestionBank, Question,
     QuizAttempt, ActiveLearningItem, StudySession, ActivityEvent, Task,
     CalendarEvent, Goal, JournalEntry, Notification
@@ -13,11 +13,8 @@ def utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 def clean_demo_data(db: Session) -> Dict[str, int]:
-    """
-    Deletes ONLY data marked with is_demo=True, ensuring personal learner data is never lost.
-    """
+    """Deletes ONLY data marked with is_demo=True, ensuring personal learner data is never lost."""
     deleted_counts = {}
-    
     deleted_counts["courses"] = db.query(Course).filter(Course.is_demo == True).delete(synchronize_session=False)
     deleted_counts["notes"] = db.query(Note).filter(Note.is_demo == True).delete(synchronize_session=False)
     deleted_counts["resources"] = db.query(Resource).filter(Resource.is_demo == True).delete(synchronize_session=False)
@@ -33,484 +30,659 @@ def clean_demo_data(db: Session) -> Dict[str, int]:
     deleted_counts["calendar_events"] = db.query(CalendarEvent).filter(CalendarEvent.is_demo == True).delete(synchronize_session=False)
     deleted_counts["goals"] = db.query(Goal).filter(Goal.is_demo == True).delete(synchronize_session=False)
     deleted_counts["journal_entries"] = db.query(JournalEntry).filter(JournalEntry.is_demo == True).delete(synchronize_session=False)
-
     db.commit()
     return deleted_counts
 
 def seed_demo_data(db: Session) -> bool:
-    """
-    Seeds comprehensive, interconnected demo data showcasing all platform features.
-    """
-    # Check if demo data already exists
-    existing = db.query(Course).filter(Course.is_demo == True).first()
-    if existing:
-        return False
-
+    """Seeds comprehensive, interconnected curriculum and platform data."""
     now = utc_now()
     yesterday = now - timedelta(days=1)
     two_days_ago = now - timedelta(days=2)
 
-    # 1. Courses
+    # 0. User Profile
+    existing_user = db.query(User).first()
+    if not existing_user:
+        u = User(
+            name="Maheswar",
+            email="maheswar@learnova.edu",
+            avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250",
+            preferences=json.dumps({
+                "program": "Dual MBA / M.S. in Machine Learning",
+                "cohort": "Class of 2027",
+                "term": "Autumn Quarter",
+                "week": "Week 07 of 12",
+                "dark_mode": False,
+                "ai_provider": "gemini",
+                "ai_model": "gemini-1.5-flash",
+                "preferred_explanation_language": "English",
+                "preferred_depth": "balanced",
+                "streak_min_minutes": 15,
+                "idle_timeout_minutes": 30,
+                "daily_card_limit": 20,
+                "daily_review_limit": 50,
+                "timezone": "UTC"
+            })
+        )
+        db.add(u)
+        db.flush()
+
+    # 1. Course 1: Latency Optimization in Enterprise RAG Pipelines
     c1 = Course(
-        name="Distributed Systems & Cloud Computing",
-        description="Comprehensive study of distributed architectures, consensus protocols, replication, fault tolerance, and scalable cloud systems.",
-        category="Computer Science",
-        instructor="Prof. Martin Kleppmann & Leslie Lamport",
-        start_date="2026-09-01",
-        target_completion_date="2026-12-15",
-        exam_date="2026-12-20",
+        id="ai-pm-llm",
+        name="Latency Optimization in Enterprise RAG Pipelines",
+        code="CS-742",
+        category="CS",
+        instructor="Dr. Elena Rostova",
+        description="Master low-latency retrieval architectures, vector quantization, speculative decoding, and hybrid lexical-semantic reranking at enterprise scale.",
         priority="high",
         cover_color="#4f46e5",
-        tags=json.dumps(["systems", "distributed", "algorithms", "cloud"]),
-        syllabus="Module 1: Foundations & Time\nModule 2: Consensus & Raft\nModule 3: Storage & Replication",
-        learning_goals=json.dumps(["Master Raft consensus protocol", "Understand CAP Theorem trade-offs", "Build resilient microservices"]),
+        tags=json.dumps(["RAG", "VectorDB", "HNSW", "Latency", "LLMs"]),
+        syllabus="Module 01: Vector Compression & Memory Optimization\nModule 02: Speculative Inference & Reranking",
+        learning_goals=json.dumps(["Sub-25ms retrieval latency", "Implement SQ8 and Product Quantization", "Evaluate BM25 vs Dense HNSW trade-offs"]),
         status="active",
         is_demo=True
     )
-    db.add(c1)
+    db.merge(c1)
     db.flush()
 
-    # Modules for Course 1
-    m1 = Module(course_id=c1.id, title="Unit 1: Time, Clocks & Ordering", description="Logical clocks, Vector clocks, and message causality", order_index=1)
-    m2 = Module(course_id=c1.id, title="Unit 2: Consensus & Fault Tolerance", description="State machine replication, 2PC, Paxos, and Raft", order_index=2)
-    db.add_all([m1, m2])
+    m1_1 = Module(id="mod-rag-1", course_id=c1.id, title="Module 01: Vector Compression & Memory Optimization", description="Quantization, HNSW graphs, and low-latency embeddings", order_index=1)
+    db.merge(m1_1)
     db.flush()
 
-    # Topics
-    t1 = Topic(
-        module_id=m1.id, course_id=c1.id,
-        title="Lamport Timestamps & Vector Clocks",
-        description="Establishing partial and total ordering in asynchronous distributed networks without global synchronized clocks.",
-        learning_objectives=json.dumps(["Differentiate physical vs logical time", "Calculate vector clock increments", "Define happens-before relation"]),
-        estimated_minutes=45, status="completed", understanding_level="confident",
-        is_optional=False, order_index=1,
-        last_studied_at=yesterday, next_revision_at=now + timedelta(days=7), revision_interval_days=7, revision_count=2
+    t1_1 = Topic(
+        id="lesson-hybrid-search",
+        module_id=m1_1.id,
+        course_id=c1.id,
+        title="Hybrid Search Architecture: Blending Keyword Precision with Semantic Context",
+        description="Low-latency retrieval architectures, vector quantization, and reciprocal rank fusion at enterprise scale.",
+        learning_objectives=json.dumps(["Explain RRF formula k=60", "Understand inverted indexes vs vector graphs", "Balance exact match with semantic intent"]),
+        estimated_minutes=35,
+        status="completed",
+        understanding_level="confident",
+        order_index=1,
+        video_url="https://www.youtube.com/watch?v=zjkBMFhNj_g",
+        markdown_content="""### Foundational Architecture: Hybrid Lexical + Semantic Retrieval
+
+Production retrieval architectures must simultaneously satisfy two contradictory requirements:
+1. **Exact-Match Precision:** Handling SKU numbers, error codes, legal clauses, and entity names without semantic drift.
+2. **Semantic Generalization:** Matching user intent across synonyms, natural language queries, and conceptual abstractions.
+
+#### Reciprocal Rank Fusion (RRF)
+$$\\text{RRF Score}(d) = \\sum_{m \\in M} \\frac{1}{k + r_m(d)}$$
+
+Constant $k = 60$ acts as a dampener preventing top-1 dense candidates from dominating lexical matches.""",
+        key_takeaways=json.dumps([
+            "Reciprocal Rank Fusion (RRF) with constant k=60 balances dense embeddings against BM25 lexical scores without calibration issues.",
+            "Inverted indexes (Tantivy/Lucene) ensure sub-5ms exact match recall for SKUs, error codes, and entity IDs.",
+            "Quantized vector graphs (SQ8) shrink RAM footprint by 75% with less than 1% degradation in recall."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "What is the primary architectural purpose of setting the dampening constant k=60 in Reciprocal Rank Fusion (RRF)?",
+                "options": [
+                    "It ensures that document length normalization matches BM25's b parameter.",
+                    "It prevents high-ranking outliers from dense models from completely dominating lexical matches.",
+                    "It scales the maximum score to exactly 1.0.",
+                    "It forces vector cosine distances into Euclidean coordinates."
+                ],
+                "correctIndex": 1,
+                "explanation": "Without k, the difference between rank 1 (score 1.0) and rank 2 (score 0.5) is massive compared to rank 50 (0.02) and rank 51 (0.0196). Constant k dampens the steep drop-off at the top."
+            }
+        ]),
+        is_optional=False,
+        last_studied_at=yesterday
     )
-    t2 = Topic(
-        module_id=m2.id, course_id=c1.id,
-        title="Raft Consensus Algorithm",
-        description="Understand leader election, log replication, safety invariants, and joint consensus cluster membership changes.",
-        learning_objectives=json.dumps(["Understand randomized election timers", "Trace append entries RPC", "Explain log matching property"]),
-        estimated_minutes=60, status="in_progress", understanding_level="comfortable",
-        is_optional=False, order_index=1,
-        last_studied_at=now, next_revision_at=now + timedelta(days=2), revision_interval_days=2, revision_count=1
+
+    t1_2 = Topic(
+        id="lesson-pq-sq8",
+        module_id=m1_1.id,
+        course_id=c1.id,
+        title="Vector Quantization: Product Quantizers (PQ) & Scalar Quantizers (SQ8)",
+        description="Scalar Quantization (SQ8) and Product Quantization (PQ) for large-scale enterprise vector stores.",
+        learning_objectives=json.dumps(["Compare SQ8 vs PQ compression ratios", "Understand Asymmetric Distance Computation", "Optimize vector database RAM budgets"]),
+        estimated_minutes=25,
+        status="completed",
+        understanding_level="comfortable",
+        order_index=2,
+        video_url="https://www.youtube.com/watch?v=QdDoFfkVkcw",
+        markdown_content="""### Scalar & Product Quantization in Enterprise Vector Stores
+
+Uncompressed float32 vectors exhaust cluster RAM rapidly (1M x 1536 x 4 bytes = 6.14 GB).
+
+SQ8 normalizes dimensions into [-128, 127], shrinking memory by 75%. Product Quantization (PQ) achieves up to 32x compression by encoding subvectors as byte code centroids.""",
+        key_takeaways=json.dumps([
+            "Scalar Quantization (SQ8) compresses 32-bit floats into 8-bit integers, yielding a 4x memory reduction.",
+            "Product Quantization (PQ) divides D-dimensional vectors into m orthogonal sub-spaces and quantizes each with k-means centroids.",
+            "Asymmetric Distance Computation (ADC) compares full-precision queries against quantized database vectors without decompression."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "Why does Asymmetric Distance Computation (ADC) achieve higher retrieval accuracy than Symmetric Distance Computation (SDC)?",
+                "options": [
+                    "ADC quantizes both query and database vectors.",
+                    "ADC keeps the incoming query in full float32 precision, quantizing only database vectors.",
+                    "ADC uses Hamming distance instead of Euclidean distance.",
+                    "ADC bypasses clustering."
+                ],
+                "correctIndex": 1,
+                "explanation": "ADC eliminates quantization noise on the query side by leaving query vectors in full 32-bit float precision."
+            }
+        ]),
+        is_optional=False,
+        last_studied_at=two_days_ago
     )
-    t3 = Topic(
-        module_id=m2.id, course_id=c1.id,
-        title="Byzantine Fault Tolerance (BFT)",
-        description="Handling arbitrary, malicious, or corrupt nodes in peer-to-peer and blockchain consensus.",
-        learning_objectives=json.dumps(["Calculate 3f + 1 node requirement", "PBFT phases: pre-prepare, prepare, commit"]),
-        estimated_minutes=50, status="not_started", understanding_level="unfamiliar",
-        is_optional=False, order_index=2
+
+    t1_3 = Topic(
+        id="lesson-speculative-decoding",
+        module_id=m1_1.id,
+        course_id=c1.id,
+        title="Speculative Decoding & KV-Cache Offloading",
+        description="Accelerating generative token generation through small draft models and speculative verification.",
+        learning_objectives=json.dumps(["Explain speculative verification matrix", "Optimize KV-cache memory bandwidth", "Calculate throughput speedup"]),
+        estimated_minutes=30,
+        status="in_progress",
+        understanding_level="comfortable",
+        order_index=3,
+        video_url="https://www.youtube.com/watch?v=9-LPEtJ_1rU",
+        markdown_content="""### Speculative Decoding Mechanics
+
+LLM inference is memory-bandwidth bound during autoregressive generation. Speculative decoding uses a lightweight draft model (e.g. 1B parameter) to hypothesize K tokens in parallel, which the primary model verifies in a single forward pass.""",
+        key_takeaways=json.dumps([
+            "Speculative decoding transforms memory-bound decoding into compute-bound batch verification.",
+            "Yields 2x-3x wall-clock latency improvement with mathematically identical output distribution."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "What is the primary factor limiting token generation speed in standard autoregressive LLM decoding?",
+                "options": [
+                    "Compute floating point operations (TFLOPS).",
+                    "Memory bandwidth loading model weights from VRAM to compute cores for each individual token.",
+                    "Network socket latency.",
+                    "Context window fragmentation."
+                ],
+                "correctIndex": 1,
+                "explanation": "Because weights must be read from high-bandwidth memory for every single token generated, batch size 1 inference is memory bandwidth bound."
+            }
+        ]),
+        is_optional=False
     )
-    db.add_all([t1, t2, t3])
+    db.merge(t1_1)
+    db.merge(t1_2)
+    db.merge(t1_3)
     db.flush()
 
-    # Subtopics
-    st1 = Subtopic(topic_id=t2.id, title="Leader Election & Randomized Timers", order_index=1, is_completed=True)
-    st2 = Subtopic(topic_id=t2.id, title="Log Replication & Commit Index", order_index=2, is_completed=True)
-    st3 = Subtopic(topic_id=t2.id, title="Safety & Election Restriction", order_index=3, is_completed=False)
-    db.add_all([st1, st2, st3])
-
-    # 2. Resources (PDF and Video with transcripts)
-    r_pdf = Resource(
-        course_id=c1.id, topic_id=t2.id,
-        title="In Search of an Understandable Consensus Algorithm (Raft Paper)",
-        type="pdf", url="https://raft.github.io/raft.pdf",
-        description="Original Stanford paper by Diego Ongaro and John Ousterhout detailing Raft consensus.",
-        author="Diego Ongaro, John Ousterhout",
-        tags=json.dumps(["paper", "consensus", "raft"]),
-        estimated_duration_mins=40, status="in_progress", personal_rating=5, is_favorite=True,
-        is_indexed=True, indexing_status="indexed",
-        extracted_text="Raft is a consensus algorithm for managing a replicated log. It produces a result equivalent to (multi-)Paxos...",
+    # Course 2: Monetary Policy Transmission
+    c2 = Course(
+        id="monetary-policy",
+        name="Monetary Policy Transmission & Inflation Targeting",
+        code="FIN-820",
+        category="Finance",
+        instructor="Prof. Raghuram Patel",
+        description="Rigorous central banking frameworks, liquidity adjustment facility (LAF), open market operations, and Phillips curve dynamics for RBI Grade B Phase II.",
+        priority="high",
+        cover_color="#855300",
+        tags=json.dumps(["Finance", "Macroeconomics", "RBI", "Liquidity", "LAF"]),
+        status="active",
         is_demo=True
     )
-    db.add(r_pdf)
+    db.merge(c2)
     db.flush()
 
-    # Chunks with page numbers for RAG grounding
+    m2_1 = Module(id="mod-fin-1", course_id=c2.id, title="Module 01: Central Banking Frameworks & Policy Corridors", description="Taylor rule and liquidity adjustment facilities", order_index=1)
+    db.merge(m2_1)
+    db.flush()
+
+    t2_1 = Topic(
+        id="lesson-taylor-rule",
+        module_id=m2_1.id,
+        course_id=c2.id,
+        title="Taylor Rule vs Constrained Discretion in Emerging Markets",
+        description="Mathematical formulation of monetary policy rate setting and flexible inflation targeting.",
+        learning_objectives=json.dumps(["Formulate Taylor Rule", "Understand output gap calculations", "Analyze capital flow trilemma"]),
+        estimated_minutes=40,
+        status="completed",
+        understanding_level="confident",
+        order_index=1,
+        video_url="https://www.youtube.com/watch?v=1qhT33g3K0g",
+        markdown_content="""### The Taylor Rule Equation
+
+$$i_t = r^* + \\pi_t + 0.5(\\pi_t - \\pi^*) + 0.5(y_t - \\bar{y}_t)$$
+
+In emerging market central banks, the rule is modified to incorporate real exchange rate depreciation and foreign reserve constraints.""",
+        key_takeaways=json.dumps([
+            "Taylor principle requires raising nominal policy rate by more than 1:1 against inflation spikes.",
+            "Constrained discretion balances credible rule commitments against black swan macroeconomic shocks."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "What is the primary consequence if a central bank violates the Taylor Principle (i.e. coefficient on inflation is < 1)?",
+                "options": [
+                    "Real interest rates fall when inflation rises, leading to destabilizing inflationary spirals.",
+                    "The currency automatically appreciates against reserve assets.",
+                    "Banks experience excessive excess liquidity.",
+                    "Government debt becomes non-tradable."
+                ],
+                "correctIndex": 0,
+                "explanation": "If nominal rates rise less than inflation, real rates drop, which stimulates borrowing and accelerates inflation further."
+            }
+        ]),
+        is_optional=False
+    )
+    db.merge(t2_1)
+    db.flush()
+
+    # Course 3: Corporate Valuation & DCF Modeling
+    c3 = Course(
+        id="corporate-valuation",
+        name="Corporate Valuation & DCF Modeling in Financial Markets",
+        code="MBA-610",
+        category="Finance",
+        instructor="Prof. Alistair Vance",
+        description="Wall Street institutional financial analysis, Weighted Average Cost of Capital (WACC), Monte Carlo scenario analysis, and M&A accretion/dilution.",
+        priority="medium",
+        cover_color="#005338",
+        tags=json.dumps(["Valuation", "DCF", "WACC", "Corporate Finance", "M&A"]),
+        status="active",
+        is_demo=True
+    )
+    db.merge(c3)
+    db.flush()
+
+    m3_1 = Module(id="mod-val-1", course_id=c3.id, title="Module 01: Discounted Cash Flow Foundations", description="Terminal value, UFCF, and cost of capital", order_index=1)
+    db.merge(m3_1)
+    db.flush()
+
+    t3_1 = Topic(
+        id="lesson-terminal-value",
+        module_id=m3_1.id,
+        course_id=c3.id,
+        title="Terminal Value Sensitivity & Unlevered Free Cash Flow Projections",
+        description="Gordon Growth vs Exit Multiple methodologies in institutional valuation.",
+        learning_objectives=json.dumps(["Derive Unlevered Free Cash Flow", "Compute Terminal Value", "Perform sensitivity analysis"]),
+        estimated_minutes=45,
+        status="in_progress",
+        understanding_level="comfortable",
+        order_index=1,
+        video_url="https://www.youtube.com/watch?v=e_H8n1xL_g8",
+        markdown_content="""### Terminal Value Formulation
+
+$$\\text{Terminal Value}_N = \\frac{\\text{UFCF}_{N+1}}{\\text{WACC} - g}$$
+
+Long-term perpetual growth rate $g$ must never exceed nominal GDP growth of the operating jurisdiction.""",
+        key_takeaways=json.dumps([
+            "Terminal value often represents 60%-85% of total DCF enterprise value.",
+            "WACC must incorporate dynamic capital structure weights rather than static book values."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "Why must the perpetual growth rate 'g' in the Gordon Growth model not exceed the projected long-term nominal GDP growth rate?",
+                "options": [
+                    "It mathematically creates a negative denominator.",
+                    "If a company grows faster than the economy forever, it would eventually become larger than the entire economy.",
+                    "Cost of debt becomes invalid.",
+                    "Tax shields disappear."
+                ],
+                "correctIndex": 1,
+                "explanation": "In perpetuity, no single business can outpace the total economy without eventually exceeding global GDP."
+            }
+        ]),
+        is_optional=False
+    )
+    db.merge(t3_1)
+    db.flush()
+
+    # Course 4: Product Sense Healthcare
+    c4 = Course(
+        id="product-sense-healthcare",
+        name="Product Sense: Designing Uber for Critical Healthcare",
+        code="PM-904",
+        category="MBA",
+        instructor="Maya Lin (VP Product)",
+        description="0-to-1 PRD authorship for complex marketplace topologies, HIPAA compliance boundaries, dual-dispatch driver economics, and healthcare SLA commitments.",
+        priority="medium",
+        cover_color="#3525cd",
+        tags=json.dumps(["Product", "PRD", "Healthcare", "SLA", "Marketplace"]),
+        status="active",
+        is_demo=True
+    )
+    db.merge(c4)
+    db.flush()
+
+    m4_1 = Module(id="mod-pm-1", course_id=c4.id, title="Module 01: Healthcare Dispatch Topologies", description="NEMT PRD and dual-dispatch SLAs", order_index=1)
+    db.merge(m4_1)
+    db.flush()
+
+    t4_1 = Topic(
+        id="lesson-nemt-prd",
+        module_id=m4_1.id,
+        course_id=c4.id,
+        title="Non-Emergency Medical Transportation (NEMT) PRD & SLA Circuit Breakers",
+        description="Marketplace mechanics, insurance reimbursement rails, and on-time reliability guarantees.",
+        learning_objectives=json.dumps(["Write enterprise PRD", "Define SLA circuit breakers", "Model healthcare dispatch supply-demand"]),
+        estimated_minutes=50,
+        status="not_started",
+        understanding_level="unfamiliar",
+        order_index=1,
+        video_url="https://www.youtube.com/watch?v=Xh0wG7GzD4s",
+        markdown_content="""### Product Requirements Document: NEMT Dual-Dispatch Platform
+
+Critical healthcare logistics differ fundamentally from standard rideshare:
+- Missed pickup carries life-safety penalties and hospital dialysis reschedule costs.
+- Driver onboarding requires specialized CPR and wheelchair-securement certifications.""",
+        key_takeaways=json.dumps([
+            "Reliability SLAs require pre-dispatch redundancy buffers rather than real-time matching.",
+            "Payer integrations (Medicaid/Medicare) require strict compliance audit trails."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "What is the primary dispatch difference between NEMT logistics and standard peer-to-peer rideshare?",
+                "options": [
+                    "NEMT trips are entirely free to riders.",
+                    "NEMT requires deterministic pre-scheduled dispatch with escalation backups due to severe medical rescheduling costs.",
+                    "NEMT does not use GPS tracking.",
+                    "NEMT trips only operate on weekends."
+                ],
+                "correctIndex": 1,
+                "explanation": "Dialysis, chemotherapy, and post-op appointments cannot tolerate a cancellation; the system must pre-dispatch with cold standby drivers."
+            }
+        ]),
+        is_optional=False
+    )
+    db.merge(t4_1)
+    db.flush()
+
+    # Course 5: Real-Time Stream Processing with Apache Flink & Kafka
+    c5 = Course(
+        id="flink-kafka-streaming",
+        name="Real-Time Stream Processing with Apache Flink & Kafka",
+        code="CS-812",
+        category="CS",
+        instructor="Alexei Ivanov",
+        description="Event-driven distributed streaming pipelines, watermark propagation, stateful CEP pattern matching, and high-throughput low-latency telemetry.",
+        priority="high",
+        cover_color="#ba1a1a",
+        tags=json.dumps(["Kafka", "Flink", "Streaming", "Distributed", "RocksDB"]),
+        status="active",
+        is_demo=True
+    )
+    db.merge(c5)
+    db.flush()
+
+    m5_1 = Module(id="mod-flink-1", course_id=c5.id, title="Module 01: Stateful Stream Architectures", description="State backends and exactly-once processing", order_index=1)
+    db.merge(m5_1)
+    db.flush()
+
+    t5_1 = Topic(
+        id="lesson-flink-state",
+        module_id=m5_1.id,
+        course_id=c5.id,
+        title="Exactly-Once State Semantics & RocksDB State Backend Optimization",
+        description="Checkpoint barriers, two-phase commit sinks, and LSM-tree state offloading.",
+        learning_objectives=json.dumps(["Explain Chandy-Lamport barrier alignment", "Tune RocksDB block cache", "Implement Kafka 2PC sink"]),
+        estimated_minutes=45,
+        status="completed",
+        understanding_level="confident",
+        order_index=1,
+        video_url="https://www.youtube.com/watch?v=B7bV31xW88s",
+        markdown_content="""### Flink State Backend Architecture
+
+Stateful operators retain intermediate aggregations in RocksDB LSM-trees offloaded from Java heap memory. Checkpoint barriers flow alongside event streams to trigger asynchronous non-blocking state snapshots.""",
+        key_takeaways=json.dumps([
+            "Asynchronous barrier snapshotting avoids stop-the-world streaming pauses.",
+            "RocksDB state backend supports terabyte-scale state exceeding total cluster RAM."
+        ]),
+        quiz_data=json.dumps([
+            {
+                "question": "How does Apache Flink achieve exactly-once processing across end-to-end distributed pipelines?",
+                "options": [
+                    "By pausing incoming traffic whenever state is modified.",
+                    "By pairing periodic state checkpointing with a Two-Phase Commit (2PC) sink protocol.",
+                    "By deduplicating messages with in-memory Redis caches.",
+                    "By strictly avoiding stateful operators."
+                ],
+                "correctIndex": 1,
+                "explanation": "Flink combines lightweight checkpoint barriers with Kafka transactional producers using a Two-Phase Commit protocol."
+            }
+        ]),
+        is_optional=False
+    )
+    db.merge(t5_1)
+    db.flush()
+
+    # 2. Resources (Books, Papers, Video Lectures)
+    r1 = Resource(
+        id="res-hull",
+        title="Options, Futures, and Other Derivatives (10th Ed.)",
+        type="book",
+        author="John C. Hull",
+        tags=json.dumps(["Derivatives", "Quant", "Black-Scholes", "Greeks"]),
+        description="The undisputed bible of quantitative derivatives pricing. Covers Black-Scholes-Merton model derivations, volatility smiles, and interest rate trees.",
+        personal_rating=5,
+        is_favorite=True,
+        status="in_progress",
+        is_demo=True
+    )
+    r2 = Resource(
+        id="res-attention",
+        title="Attention Is All You Need",
+        type="pdf",
+        url="https://arxiv.org/pdf/1706.03762.pdf",
+        author="Vaswani, A., Shazeer, N., Parmar, N., et al.",
+        tags=json.dumps(["Transformers", "Attention", "Deep Learning", "LLMs"]),
+        description="The seminal 2017 research paper introducing the Transformer architecture, multi-head self-attention, and positional encodings.",
+        personal_rating=5,
+        is_favorite=True,
+        status="completed",
+        is_demo=True
+    )
+    r3 = Resource(
+        id="res-video-rag",
+        title="Deep Dive: Low-Latency RAG Architectures & Vector Quantization",
+        type="video",
+        url="https://www.youtube.com/watch?v=zjkBMFhNj_g",
+        author="Dr. Elena Rostova",
+        tags=json.dumps(["RAG", "VectorDB", "Latency", "Quantization"]),
+        description="Master lecture on sub-20ms hybrid search, reciprocal rank fusion (RRF), SQ8 vector compression, and multi-tenant partitioning.",
+        personal_rating=5,
+        is_favorite=True,
+        status="in_progress",
+        is_demo=True
+    )
+    db.merge(r1)
+    db.merge(r2)
+    db.merge(r3)
+    db.flush()
+
+    # RAG Chunks for grounding
     rc1 = ResourceChunk(
-        resource_id=r_pdf.id, chunk_index=0, page_number=1,
-        text_content="Raft decomposes consensus into three independent subproblems: Leader election, Log replication, and Safety. A leader is first elected, which takes complete responsibility for managing log replication."
+        resource_id=r2.id,
+        chunk_index=0,
+        page_number=1,
+        text_content="The Transformer is the first transduction model relying entirely on self-attention to compute representations of its input and output without using sequence-aligned RNNs or convolution."
     )
     rc2 = ResourceChunk(
-        resource_id=r_pdf.id, chunk_index=1, page_number=5,
-        text_content="Leader Election in Raft uses randomized election timeouts (typically 150-300ms) to ensure split votes are rare and resolved quickly. If a follower receives no communication over its election timeout, it becomes a candidate and increments currentTerm."
+        resource_id=r3.id,
+        chunk_index=0,
+        page_number=1,
+        text_content="Reciprocal Rank Fusion (RRF) score is computed as sum of 1 / (60 + rank). Constant k=60 prevents top-1 dense candidates from skewing lexical results."
     )
-    rc3 = ResourceChunk(
-        resource_id=r_pdf.id, chunk_index=2, page_number=8,
-        text_content="Safety: If a leader has committed a log entry at a given index, no other server will ever apply a different log entry for the same index. The election restriction guarantees that a candidate must contain all committed entries to win an election."
-    )
-    db.add_all([rc1, rc2, rc3])
-
-    # Video resource with timestamped transcript
-    r_video = Resource(
-        course_id=c1.id, topic_id=t2.id,
-        title="Visualizing Raft Consensus in 10 Minutes",
-        type="video", url="https://www.youtube.com/watch?v=vYp4LYbnnW8",
-        description="Intuitive visual walkthrough of Raft leader election, heartbeats, and client interactions.",
-        author="Secret Knowledge Systems",
-        tags=json.dumps(["video", "raft", "animation"]),
-        estimated_duration_mins=12, status="in_progress", personal_rating=5,
-        resume_position_secs=184.0, is_indexed=True, indexing_status="indexed",
-        is_demo=True
-    )
-    db.add(r_video)
+    db.add_all([rc1, rc2])
     db.flush()
 
-    rc_v1 = ResourceChunk(
-        resource_id=r_video.id, chunk_index=0, timestamp_secs=45.0,
-        text_content="[00:45] Every node starts in the Follower state. Followers listen for heartbeats from a leader. If heartbeats stop arriving, election timeout triggers."
-    )
-    rc_v2 = ResourceChunk(
-        resource_id=r_video.id, chunk_index=1, timestamp_secs=180.0,
-        text_content="[03:00] During Log Replication, the leader receives a client write, appends it locally as an uncommitted entry, then broadcasts AppendEntries RPCs to all followers."
-    )
-    db.add_all([rc_v1, rc_v2])
-
-    # 3. Notes
-    n1 = Note(
-        course_id=c1.id, topic_id=t2.id,
-        title="Core Invariants of Raft Consensus",
-        content="""# Raft Core Notes
-
-## 1. Node Roles
-At any time, each node is in one of three states:
-- **Leader**: Handles all client requests, replicates log entries.
-- **Follower**: Passive, responds to incoming RPCs from leaders and candidates.
-- **Candidate**: Used to elect a new leader.
-
-## 2. Terms
-Time is divided into arbitrary terms, numbered with consecutive integers.
-Terms act as a logical clock in Raft.
-
-```python
-# Term validation
-if rpc.term > current_term:
-    current_term = rpc.term
-    state = State.FOLLOWER
-```
-
-> [!NOTE]
-> Randomized election timeouts prevent split votes when multiple candidates start elections simultaneously.
-""",
-        summary="Summary of Raft states (Leader, Follower, Candidate), terms as logical clocks, and the randomized timer mechanism.",
-        tags=json.dumps(["raft", "consensus", "cheat-sheet"]),
-        is_pinned=True, is_favorite=True, needs_revision=False,
-        template_type="lecture", is_demo=True
-    )
-    db.add(n1)
-    db.flush()
-
-    nv1 = NoteVersion(
-        note_id=n1.id, version_number=1,
-        title=n1.title, content=n1.content, summary=n1.summary
-    )
-    db.add(nv1)
-
-    # 4. Doubt Inbox comment
-    c_doubt = Comment(
-        target_type="topic", target_id=t2.id, course_id=c1.id, topic_id=t2.id,
-        text="Why does Raft require candidate log comparison in RequestVote rather than just term comparison?",
-        comment_type="doubt", priority="high", is_resolved=False,
-        is_pinned=True, is_demo=True
-    )
-    db.add(c_doubt)
-
-    # 5. Flashcards
+    # 3. Flashcards (with FSRS parameters)
     deck = FlashcardDeck(
-        course_id=c1.id, topic_id=t2.id,
-        name="Raft Consensus & Distributed Systems",
-        description="Spaced repetition deck for consensus, RPCs, and safety proofs",
-        tags=json.dumps(["consensus", "raft", "exams"]),
+        name="Quantitative Finance & Systems Architecture",
+        description="High-yield flashcards reviewed with FSRS spaced repetition algorithms",
         is_demo=True
     )
     db.add(deck)
     db.flush()
 
-    fc1 = Flashcard(
-        deck_id=deck.id, course_id=c1.id, topic_id=t2.id,
-        card_type="basic",
-        front="What are the three possible states of a Raft node?",
-        back="Leader, Follower, and Candidate.",
-        explanation="Nodes start as Followers; transition to Candidate if election timeout elapses; become Leader upon majority vote.",
-        source_ref="Raft Paper Page 4", tags=json.dumps(["basics", "raft"]),
-        reps=2, lapses=0, stability=2.6, state="review", interval_days=4,
-        last_review_at=yesterday, next_review_at=now + timedelta(days=3),
+    f1 = Flashcard(
+        deck_id=deck.id,
+        course_id=c1.id,
+        topic_id=t1_1.id,
+        front="What is the mathematical definition and role of the parameter k in Reciprocal Rank Fusion (RRF)?",
+        back="RRF Score(d) = sum(1 / (k + rank)). Constant k=60 prevents top-ranked candidates from dominating the aggregated ranking curve.",
+        stability=3.8,
+        reps=4,
+        lapses=0,
+        interval_days=7,
+        state="review",
         is_demo=True
     )
-    fc2 = Flashcard(
-        deck_id=deck.id, course_id=c1.id, topic_id=t2.id,
-        card_type="cloze",
-        front="Raft uses {{c1::randomized election timeouts}} (typically 150-300ms) to prevent {{c2::split votes}}.",
-        back="randomized election timeouts / split votes",
-        explanation="Randomization ensures that one candidate usually timeouts first and collects votes before others wake up.",
-        source_ref="Raft Paper Page 5", tags=json.dumps(["cloze", "timers"]),
-        reps=1, lapses=0, stability=2.5, state="review", interval_days=1,
-        last_review_at=yesterday, next_review_at=now, # Due today!
+    f2 = Flashcard(
+        deck_id=deck.id,
+        course_id=c3.id,
+        topic_id=t3_1.id,
+        front="In options trading, what happens to Gamma as expiration approaches for At-The-Money (ATM) options?",
+        back="Gamma approaches infinity for ATM options near expiry (pin risk), requiring hyper-frequent dynamic delta hedging.",
+        stability=5.2,
+        reps=6,
+        lapses=1,
+        interval_days=14,
+        state="review",
         is_demo=True
     )
-    fc3 = Flashcard(
-        deck_id=deck.id, course_id=c1.id, topic_id=t2.id,
-        card_type="reversed",
-        front="Term in Raft",
-        back="An arbitrary period of time numbered with consecutive integers that acts as a logical clock.",
-        explanation="Terms allow servers to detect obsolete information such as stale leaders.",
-        tags=json.dumps(["definitions"]),
-        reps=0, lapses=0, stability=2.5, state="new", interval_days=0,
-        next_review_at=now,
+    f3 = Flashcard(
+        deck_id=deck.id,
+        course_id=c1.id,
+        topic_id=t1_2.id,
+        front="Why does Product Quantization (PQ) achieve greater compression than Scalar Quantization (SQ8)?",
+        back="SQ8 quantizes each dimension independently (32-bit to 8-bit, 4x compression). PQ divides D dimensions into m subspaces and quantizes vector groups into cluster centroids (up to 32x compression).",
+        stability=2.1,
+        reps=2,
+        lapses=0,
+        interval_days=3,
+        state="learning",
         is_demo=True
     )
-    db.add_all([fc1, fc2, fc3])
+    db.add_all([f1, f2, f3])
+    db.flush()
 
-    # 6. Question Bank & Questions
-    qbank = QuestionBank(
-        course_id=c1.id, topic_id=t2.id,
-        name="Consensus & Raft Mastery Bank",
-        description="Comprehensive questions testing objective recall and analytical understanding",
+    # 4. Notes
+    n1 = Note(
+        course_id=c1.id,
+        topic_id=t1_1.id,
+        title="RRF Hybrid Search Architecture Notes",
+        content="Key insight: RRF Score(d) = sum(1 / (k + rank)). k=60 prevents top-1 bias.\nTantivy full-text search handles alphanumeric SKUs, while Milvus HNSW handles semantic intent.",
+        summary="Hybrid search combines inverted indexes and dense vector graphs with dampening constant k=60.",
+        tags=json.dumps(["RAG", "Search", "Architecture"]),
+        is_favorite=True,
         is_demo=True
     )
-    db.add(qbank)
+    db.add(n1)
+    db.flush()
+
+    # 5. Question Bank for Practice Arena
+    q_bank = QuestionBank(
+        course_id=c2.id,
+        name="RBI Grade B Phase II — Economic & Social Issues Diagnostic Mock",
+        description="Curated high-pressure mock exam questions testing monetary economics and financial markets.",
+        is_demo=True
+    )
+    db.add(q_bank)
     db.flush()
 
     q1 = Question(
-        bank_id=qbank.id, course_id=c1.id, topic_id=t2.id,
-        question_type="mcq",
-        question_text="What happens when a Raft follower receives no heartbeat before its election timeout expires?",
+        bank_id=q_bank.id,
+        course_id=c2.id,
+        topic_id=t2_1.id,
+        question_type="multiple_choice",
+        question_text="Under the Flexible Inflation Targeting (FIT) framework in India, what is the statutory target for Consumer Price Index (CPI) inflation?",
         options=json.dumps([
-            "It drops from the cluster permanently",
-            "It increments currentTerm and transitions to Candidate",
-            "It immediately declares itself Leader",
-            "It triggers a crash-stop event"
+            "4% with a tolerance band of +/- 2% (2% to 6%)",
+            "3% with a tolerance band of +/- 1% (2% to 4%)",
+            "5% with a tolerance band of +/- 2.5%",
+            "Fixed 4% without tolerance band"
         ]),
-        correct_answer=json.dumps("It increments currentTerm and transitions to Candidate"),
-        explanation="Upon election timeout, a follower increments its term, transitions to candidate state, votes for itself, and sends RequestVote RPCs.",
-        source_ref="Raft Paper Section 5.2",
-        difficulty="easy",
-        is_demo=True
-    )
-    q2 = Question(
-        bank_id=qbank.id, course_id=c1.id, topic_id=t2.id,
-        question_type="true_false",
-        question_text="In Raft, a leader can commit an entry from a previous term directly by counting replicas.",
-        options=json.dumps(["True", "False"]),
-        correct_answer=json.dumps("False"),
-        explanation="Raft never commits log entries from previous terms by counting replicas; it must commit an entry from its current term, which indirectly commits prior entries (Section 5.4.2).",
-        source_ref="Raft Paper Section 5.4.2",
-        difficulty="hard",
-        is_demo=True
-    )
-    q3 = Question(
-        bank_id=qbank.id, course_id=c1.id, topic_id=t2.id,
-        question_type="numerical",
-        question_text="In a crash-tolerant Paxos or Raft cluster designed to survive f node failures, how many total nodes 2f + 1 are required when f = 2?",
-        correct_answer=json.dumps(5),
-        numerical_tolerance=0.0,
-        numerical_unit="nodes",
-        explanation="A majority quorum requires 2f + 1 nodes. For f = 2, 2*(2) + 1 = 5 nodes.",
+        correct_answer="0",
+        explanation="Section 45ZA of the RBI Act specifies 4% CPI inflation with a +/- 2% tolerance band (2% floor, 6% ceiling).",
         difficulty="medium",
         is_demo=True
     )
-    db.add_all([q1, q2, q3])
-
-    # 7. Completed Quiz Attempt
-    attempt = QuizAttempt(
-        bank_id=qbank.id, course_id=c1.id, topic_id=t2.id,
-        quiz_title="Raft Foundations Practice Quiz",
-        mode="practice",
-        score=2.0, max_score=3.0, percentage=66.7,
-        time_spent_secs=180,
-        questions_snapshot=json.dumps([
-            {"id": "q1", "text": "What happens when a follower timeouts?", "type": "mcq"},
-            {"id": "q2", "text": "Can a leader commit prior term entries by replicas alone?", "type": "true_false"}
+    q2 = Question(
+        bank_id=q_bank.id,
+        course_id=c2.id,
+        topic_id=t2_1.id,
+        question_type="multiple_choice",
+        question_text="Which facility serves as the uncollateralized floor rate of the Liquidity Adjustment Facility (LAF) corridor introduced by the RBI in 2022?",
+        options=json.dumps([
+            "Marginal Standing Facility (MSF)",
+            "Standing Deposit Facility (SDF)",
+            "Overnight Reverse Repo Rate",
+            "Variable Rate Repo (VRR)"
         ]),
-        responses=json.dumps({
-            "q1": {"user_answer": "It increments currentTerm and transitions to Candidate", "is_correct": True},
-            "q2": {"user_answer": "True", "is_correct": False, "correct_answer": "False"}
-        }),
-        completed_at=yesterday,
+        correct_answer="1",
+        explanation="The Standing Deposit Facility (SDF) was instituted in April 2022 at 25 bps below the policy repo rate as the floor without requiring government securities collateral.",
+        difficulty="hard",
         is_demo=True
     )
-    db.add(attempt)
+    db.add_all([q1, q2])
+    db.flush()
 
-    # 8. Active Learning Items
-    teach_back = ActiveLearningItem(
-        item_type="teach_back", course_id=c1.id, topic_id=t2.id,
-        title="Teach-back: Explain Split-Brain Prevention in Raft",
-        content=json.dumps({
-            "prompt": "Explain how quorum majorities and terms prevent two leaders from coexisting in Raft.",
-            "learner_explanation": "Each node only votes once per term. Since any two quorums must overlap by at least one server, two candidates cannot both achieve a majority in the same term.",
-            "feedback": "Excellent explanation. You accurately highlighted quorum intersection and the single-vote invariant."
-        }),
-        reflection_notes="Clear understanding of quorum arithmetic.",
-        mastery_level="mastered",
-        is_demo=True
-    )
-    formula_item = ActiveLearningItem(
-        item_type="formula", course_id=c1.id, topic_id=t1.id,
-        title="Quorum Intersection Formula",
-        content=json.dumps({
-            "formula_latex": "Q_r + Q_w > N",
-            "variables": [
-                {"name": "N", "description": "Total replicas", "value": "5"},
-                {"name": "Q_r", "description": "Read quorum size", "value": "3"},
-                {"name": "Q_w", "description": "Write quorum size", "value": "3"}
-            ],
-            "application": "Ensures that every read quorum intersects with the most recent write quorum by at least 1 node."
-        }),
-        mastery_level="mastered",
-        is_demo=True
-    )
-    concept_comp = ActiveLearningItem(
-        item_type="concept_comparison", course_id=c1.id, topic_id=t2.id,
-        title="Paxos vs Raft Comparison",
-        content=json.dumps({
-            "concept_a": "Multi-Paxos",
-            "concept_b": "Raft",
-            "dimensions": [
-                {"aspect": "Leader Role", "a": "Weak leader (proposers can overlap)", "b": "Strong leader (all writes flow strictly through leader)"},
-                {"aspect": "Log Gaps", "a": "Allows out-of-order log entries and holes", "b": "Strict sequential log without gaps"},
-                {"aspect": "Understandability", "a": "Notoriously opaque", "b": "Designed explicitly for pedagogical understandability"}
-            ]
-        }),
-        mastery_level="learning",
-        is_demo=True
-    )
-    db.add_all([teach_back, formula_item, concept_comp])
-
-    # 9. Study Sessions
-    ss1 = StudySession(
-        course_id=c1.id, topic_id=t2.id,
-        goal="Read Raft paper Section 5 and take notes on election safety",
-        session_type="focus", planned_duration_mins=45, actual_duration_secs=2700, break_duration_secs=300,
-        start_time=yesterday - timedelta(hours=2), end_time=yesterday - timedelta(hours=1, minutes=15),
-        status="completed",
-        reflection_completed="Read pages 1 to 8 of Raft paper, created summary notes and 3 flashcards.",
-        reflection_unclear="Log compaction via snapshotting still needs review.",
-        reflection_confidence="high", reflection_next="Implement a toy Raft state machine in Python.",
-        session_notes="Very productive session without distractions.",
-        is_demo=True
-    )
-    ss2 = StudySession(
-        course_id=c1.id, topic_id=t1.id,
-        goal="Practice vector clock exercises",
-        session_type="pomodoro", planned_duration_mins=25, actual_duration_secs=1500, break_duration_secs=300,
-        start_time=two_days_ago - timedelta(hours=3), end_time=two_days_ago - timedelta(hours=2, minutes=30),
-        status="completed",
-        reflection_completed="Worked 4 partial ordering causality diagrams.",
-        reflection_unclear="Concurrent causality representation.",
-        reflection_confidence="medium", reflection_next="Review Lamport logical clock tick rules.",
-        is_demo=True
-    )
-    db.add_all([ss1, ss2])
-
-    # 10. Tasks & Assignments
-    task1 = Task(
-        course_id=c1.id, topic_id=t2.id,
-        title="Implement Raft Election Simulator in Python",
-        description="Code a 3-node simulation handling RPC timeouts, candidate votes, and leader heartbeats.",
-        task_type="assignment", due_date=now + timedelta(days=5),
-        priority="high", status="in_progress", estimated_minutes=120, actual_minutes=45,
-        subtasks=json.dumps([
-            {"id": "1", "title": "Setup Node class with state enums", "completed": True},
-            {"id": "2", "title": "Implement randomized election timer", "completed": True},
-            {"id": "3", "title": "Handle RequestVote RPC logic", "completed": False},
-            {"id": "4", "title": "Test network partition scenarios", "completed": False}
-        ]),
-        instructions="Ensure nodes transition cleanly between Follower, Candidate, and Leader.",
-        is_demo=True
-    )
-    task2 = Task(
-        course_id=c1.id, topic_id=t1.id,
-        title="Complete Vector Clock Practice Sheet",
-        description="Solve textbook causality ordering problems.",
-        task_type="study", due_date=now + timedelta(days=1),
-        priority="medium", status="todo", estimated_minutes=30,
-        subtasks=json.dumps([]),
-        is_demo=True
-    )
-    db.add_all([task1, task2])
-
-    # 11. Calendar Events
-    cal1 = CalendarEvent(
-        course_id=c1.id, topic_id=t2.id,
-        title="Deep Work: Raft Coding & Edge Cases",
-        event_type="session",
-        start_time=now + timedelta(hours=2), end_time=now + timedelta(hours=3, minutes=30),
-        is_all_day=False, reminder_mins_before=15, is_completed=False,
-        is_demo=True
-    )
-    cal2 = CalendarEvent(
+    # 6. Study Sessions (Real Focus Duration)
+    s1 = StudySession(
+        session_type="pomodoro",
         course_id=c1.id,
-        title="Distributed Systems Midterm Exam",
-        event_type="exam",
-        start_time=now + timedelta(days=14, hours=9), end_time=now + timedelta(days=14, hours=12),
-        is_all_day=False, reminder_mins_before=60, is_completed=False,
-        is_demo=True
+        topic_id=t1_1.id,
+        planned_duration_mins=25,
+        actual_duration_secs=1500,
+        goal="RAG Hybrid Search Architecture",
+        session_notes="Deep dive into reciprocal rank fusion k-factor calibration.",
+        status="completed",
+        is_demo=True,
+        created_at=yesterday
     )
-    db.add_all([cal1, cal2])
+    s2 = StudySession(
+        session_type="deep_work",
+        course_id=c2.id,
+        topic_id=t2_1.id,
+        planned_duration_mins=50,
+        actual_duration_secs=3000,
+        goal="Taylor Rule & Macroeconomics",
+        session_notes="Derivation of output gap and flexible inflation targeting.",
+        status="completed",
+        is_demo=True,
+        created_at=two_days_ago
+    )
+    db.add_all([s1, s2])
+    db.flush()
 
-    # 12. Goals
+    # 7. Goals
     g1 = Goal(
-        title="Study Distributed Systems for 6 hours this week",
-        goal_type="hours", target_value=6.0, current_value=3.5, unit="hours",
-        period="weekly", deadline=now + timedelta(days=4), course_id=c1.id,
-        is_completed=False, is_demo=True
+        title="Complete CS-742 Retrieval Latency Sprint",
+        goal_type="hours",
+        target_value=10.0,
+        current_value=6.5,
+        unit="hours",
+        period="weekly",
+        deadline=now + timedelta(days=28),
+        course_id=c1.id,
+        is_completed=False,
+        is_demo=True
     )
     g2 = Goal(
-        title="Review 15 Spaced Repetition Flashcards Daily",
-        goal_type="flashcards", target_value=15.0, current_value=12.0, unit="cards",
-        period="daily", deadline=now + timedelta(hours=6),
-        is_completed=False, is_demo=True
+        title="Score >85% on RBI Grade B Phase II Mock",
+        goal_type="score",
+        target_value=85.0,
+        current_value=90.0,
+        unit="percent",
+        period="monthly",
+        deadline=now + timedelta(days=45),
+        course_id=c2.id,
+        is_completed=True,
+        is_demo=True
     )
     db.add_all([g1, g2])
+    db.flush()
 
-    # 13. Journal Entries
-    j1 = JournalEntry(
-        entry_date=yesterday.strftime("%Y-%m-%d"),
-        entry_type="daily", course_id=c1.id, topic_id=t2.id,
-        learned_text="Understood why candidate vote restrictions must check both term and last log index to guarantee the Leader Completeness property.",
-        difficult_text="Dissecting Figure 8 from the Raft paper (why a leader cannot directly commit older term entries).",
-        unclear_text="How joint consensus membership changes handle sudden follower disconnects.",
-        helped_text="Visualizing animated Raft state transitions.",
-        next_text="Draft python prototype for leader election.",
-        mood_rating=4, is_demo=True
-    )
-    db.add(j1)
-
-    # 14. Notifications
-    notif1 = Notification(
-        notification_type="revision",
-        title="Revision Due Today",
-        message="Flashcard deck 'Raft Consensus' has cards waiting for spaced repetition review.",
-        link_url="/flashcards",
-        is_read=False,
-        scheduled_for=now
-    )
-    notif2 = Notification(
-        notification_type="deadline",
-        title="Assignment Deadline Approaching",
-        message="Raft Election Simulator in Python is due in 5 days.",
-        link_url="/tasks",
-        is_read=False,
-        scheduled_for=now
-    )
-    db.add_all([notif1, notif2])
-
-    # 15. Activity Events for visits & streak
-    ae_visit = ActivityEvent(
-        event_type="platform_visit",
-        session_visit_id="demo-session-1",
-        timestamp=now - timedelta(hours=3)
-    )
-    ae_course = ActivityEvent(
-        event_type="course_visit",
-        target_type="course",
-        target_id=c1.id,
-        course_id=c1.id,
-        timestamp=now - timedelta(hours=3)
-    )
-    db.add_all([ae_visit, ae_course])
+    # 8. Tasks (Sprint Backlog)
+    task1 = Task(title="Derive Reciprocal Rank Fusion mathematical formula", priority="high", status="completed", course_id=c1.id, is_demo=True)
+    task2 = Task(title="Analyze Hull chapter 14 Greek sensitivity graphs", priority="high", status="completed", course_id=c3.id, is_demo=True)
+    task3 = Task(title="Run simulation on multi-agent credit risk engine", priority="medium", status="todo", course_id=c1.id, is_demo=True)
+    task4 = Task(title="Complete RBI Grade B Phase II ESI Mock Section A", priority="medium", status="todo", course_id=c2.id, is_demo=True)
+    db.add_all([task1, task2, task3, task4])
 
     db.commit()
     return True

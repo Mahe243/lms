@@ -26,6 +26,7 @@ class Course(Base):
     __tablename__ = "courses"
     id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String, nullable=False)
+    code = Column(String, default="CS-101")
     description = Column(Text, default="")
     category = Column(String, default="General")
     instructor = Column(String, nullable=True)
@@ -69,6 +70,10 @@ class Topic(Base):
     title = Column(String, nullable=False)
     description = Column(Text, default="")
     learning_objectives = Column(Text, default="[]") # JSON list
+    video_url = Column(String, nullable=True)
+    markdown_content = Column(Text, default="")
+    key_takeaways = Column(Text, default="[]") # JSON list
+    quiz_data = Column(Text, default="[]") # JSON list
     estimated_minutes = Column(Integer, default=30)
     status = Column(String, default="not_started") # not_started, in_progress, completed, needs_revision
     understanding_level = Column(String, default="unfamiliar") # unfamiliar, basic, comfortable, confident

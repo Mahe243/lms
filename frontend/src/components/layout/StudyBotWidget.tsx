@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { aiApi } from '../../api/aiApi';
 
 interface BotMessage {
   id: string;
@@ -19,7 +20,6 @@ export const StudyBotWidget: React.FC = () => {
     courses,
     setIsUploadModalOpen,
     setCurrentPath,
-    geminiApiKey,
     user,
     updateUser,
   } = useApp();
@@ -152,51 +152,28 @@ export const StudyBotWidget: React.FC = () => {
       return;
     }
 
-    // Try Gemini API if key is configured
-    if (geminiApiKey) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `You are Nova, an AI study assistant and tutor for an LMS student named ${user.name}. 
-The student is currently reviewing: ${activeLesson.title} (Course: ${currentCourse.title}).
-Answer concisely, with academic depth, clear bullet points, or code if applicable.
-
-Student question: ${textToSend}`,
-                    },
-                  ],
-                },
-              ],
-            }),
-          }
-        );
-        const data = await response.json();
-        const reply =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "I have processed your question. Let's examine the underlying framework.";
-
-        setIsTyping(false);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `bot-${Date.now()}`,
-            sender: 'bot',
-            text: reply,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-        updateUser({ weeklyXP: user.weeklyXP + 20 });
-        return;
-      } catch (err) {
-        console.warn('Gemini call failed, using intelligent built-in tutor logic', err);
-      }
+    // Route to server-side AI Tutor API
+    try {
+      const response = await aiApi.chatWithTutor({
+        message: textToSend,
+        course_id: currentCourse.id,
+        topic_id: activeLesson.id,
+        context_mode: 'current_topic',
+      });
+      setIsTyping(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-${Date.now()}`,
+          sender: 'bot',
+          text: response.content,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+      updateUser({ weeklyXP: user.weeklyXP + 25 });
+      return;
+    } catch (e) {
+      console.log('Using cognitive fallback response:', e);
     }
 
     // High-yield contextual cognitive fallback response

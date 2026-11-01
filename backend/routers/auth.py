@@ -11,8 +11,8 @@ def get_or_create_user(db: Session) -> User:
     u = db.query(User).first()
     if not u:
         u = User(
-            name="Learner",
-            email="learner@personal.lms",
+            name="Maheswar",
+            email="maheswar@learnova.edu",
             preferences=json.dumps({
                 "dark_mode": False,
                 "ai_provider": "gemini",

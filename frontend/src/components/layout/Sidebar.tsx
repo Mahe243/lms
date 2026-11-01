@@ -59,7 +59,7 @@ export const Sidebar: React.FC = () => {
         {/* Navigation Menu */}
         <nav className="flex flex-col gap-space-2xs overflow-y-auto max-h-[calc(100vh-21rem)] pr-1">
           {navItems.map((item) => {
-            const isActive = currentPath === item.path || (item.path === 'my-learning' && currentPath === 'classroom');
+            const isActive = currentPath === item.path;
             return (
               <button
                 key={item.path}

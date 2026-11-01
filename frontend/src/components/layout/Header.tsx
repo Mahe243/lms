@@ -14,6 +14,9 @@ export const Header: React.FC = () => {
     toggleTheme,
     setIsFastRecallOpen,
     setIsUploadModalOpen,
+    isOnline,
+    isSyncing,
+    refreshBackendData,
   } = useApp();
 
   const formatTimer = (secs: number) => {
@@ -41,6 +44,14 @@ export const Header: React.FC = () => {
           <span className="font-label-sm text-label-sm text-on-surface-variant dark:text-dark-text-muted uppercase tracking-wider font-semibold">
             Personal Learning Universe
           </span>
+          <button
+            onClick={() => refreshBackendData()}
+            title="Click to sync with backend database"
+            className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-[10px] font-code-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-spin' : isOnline ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
+            <span>{isSyncing ? 'Syncing...' : isOnline ? 'DB Live' : 'Offline'}</span>
+          </button>
         </div>
         <span className="text-outline-variant/60 hidden md:inline">|</span>
         <span className="font-code-sm text-code-sm text-on-surface-variant/80 dark:text-dark-text-muted hidden md:inline">

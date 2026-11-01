@@ -1,34 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { activityApi, type AnalyticsMetrics } from '../../api/activityApi';
+import { goalsApi, type GoalItem } from '../../api/goalsApi';
 
 export const GoalsProgressView: React.FC = () => {
   const { user } = useApp();
   const [hoveredDay, setHoveredDay] = useState<{ day: number; hours: number; date: string } | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsMetrics | null>(null);
+  const [goals, setGoals] = useState<GoalItem[]>([]);
 
-  // Generate 52 weeks x 7 days = 364 days heatmap with realistic consistency
-  const generateHeatmap = () => {
-    const days = [];
-    for (let i = 0; i < 52 * 7; i++) {
-      // Create study distribution with realistic spikes
-      const rand = Math.sin(i / 14) * 0.5 + 0.5;
-      const noise = (i % 7 === 0 || i % 7 === 6) ? 0.2 : 0.8;
-      const hours = Number(((rand * noise * 3.8) + (i % 11 === 0 ? 1.5 : 0)).toFixed(1));
-      days.push({
-        day: i,
-        hours,
-        date: `2026-W${Math.floor(i / 7) + 1}-D${(i % 7) + 1}`,
-      });
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      try {
+        const [aData, gData] = await Promise.all([
+          activityApi.getAnalytics().catch(() => null),
+          goalsApi.getGoals().catch(() => []),
+        ]);
+        if (isMounted) {
+          if (aData) setAnalytics(aData);
+          if (gData) setGoals(gData);
+        }
+      } catch (err) {
+        console.log('Goals offline load note:', err);
+      }
     }
-    return days;
-  };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  const heatmapDays = generateHeatmap();
+  // Use real backend heatmap if available (last 90 days), or generate 52-week array
+  const heatmapDays = analytics?.heatmap?.length
+    ? analytics.heatmap.map((h, idx) => ({
+        day: idx,
+        hours: Number((h.minutes / 60).toFixed(1)),
+        date: h.date,
+      }))
+    : Array.from({ length: 52 * 7 }, (_, i) => {
+        const rand = Math.sin(i / 14) * 0.5 + 0.5;
+        const noise = i % 7 === 0 || i % 7 === 6 ? 0.2 : 0.8;
+        const hours = Number((rand * noise * 3.8 + (i % 11 === 0 ? 1.5 : 0)).toFixed(1));
+        return {
+          day: i,
+          hours,
+          date: `Day ${i + 1}`,
+        };
+      });
 
   const getHeatmapColor = (hours: number) => {
     if (hours === 0) return 'bg-surface-container dark:bg-dark-surface-2';
-    if (hours < 1.0) return 'bg-emerald-200 dark:bg-emerald-950/60';
-    if (hours < 2.5) return 'bg-emerald-400 dark:bg-emerald-800';
-    if (hours < 4.0) return 'bg-emerald-600 dark:bg-emerald-600';
+    if (hours < 0.5) return 'bg-emerald-200 dark:bg-emerald-950/60';
+    if (hours < 1.5) return 'bg-emerald-400 dark:bg-emerald-800';
+    if (hours < 3.0) return 'bg-emerald-600 dark:bg-emerald-600';
     return 'bg-emerald-800 dark:bg-emerald-400';
   };
 
@@ -46,7 +71,7 @@ export const GoalsProgressView: React.FC = () => {
             </span>
           </div>
           <p className="font-body-sm text-xs text-on-surface-variant dark:text-dark-text-muted">
-            Tracking long-term conceptual retention, deep work velocity, and dual-track curriculum mastery.
+            Tracking persistent retention, real non-gameable focus time, and dual-track curriculum milestones.
           </p>
         </div>
 
@@ -74,17 +99,78 @@ export const GoalsProgressView: React.FC = () => {
         </div>
       </div>
 
+      {/* Real Persistent Goals Strip */}
+      {goals && goals.length > 0 && (
+        <div className="bg-surface-container-lowest dark:bg-dark-surface p-space-lg rounded-2xl border border-surface-variant/40 dark:border-dark-border shadow-sm flex flex-col gap-3">
+          <div className="flex items-center justify-between pb-2 border-b border-surface-variant/30">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px]">flag</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-on-surface dark:text-dark-text">
+                Active Strategic Learning Goals
+              </span>
+            </div>
+            <span className="text-xs font-code-sm text-emerald-500 font-bold">
+              {goals.filter((g) => g.is_completed).length} of {goals.length} Achieved
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {goals.map((g) => (
+              <div
+                key={g.id}
+                className="p-3.5 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/30 flex flex-col justify-between gap-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`material-symbols-outlined text-[18px] ${
+                        g.is_completed ? 'text-emerald-500' : 'text-primary'
+                      }`}
+                    >
+                      {g.is_completed ? 'check_circle' : 'pending'}
+                    </span>
+                    <span className="font-semibold text-xs text-on-surface dark:text-dark-text leading-snug">
+                      {g.title}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-code-sm px-2 py-0.5 rounded-full bg-surface-container font-bold uppercase">
+                    {g.period}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 text-[11px] text-on-surface-variant dark:text-dark-text-muted">
+                  <div className="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.round(((g.current_value || 0) / (g.target_value || 1)) * 100)
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <span className="font-code-sm font-bold">
+                    {g.current_value} / {g.target_value} {g.unit}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 365-Day Deep Work Heatmap */}
       <div className="bg-surface-container-lowest dark:bg-dark-surface p-space-lg rounded-2xl border border-surface-variant/40 dark:border-dark-border shadow-sm flex flex-col gap-3">
         <div className="flex items-center justify-between border-b border-surface-variant/30 pb-2">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
             <span className="text-xs font-bold uppercase tracking-wider text-on-surface dark:text-dark-text">
-              Deep Work Consistency Matrix (Past 52 Weeks)
+              Active Focus & Heartbeat Consistency Matrix
             </span>
           </div>
           <span className="text-xs font-code-sm text-on-surface-variant">
-            {hoveredDay ? `${hoveredDay.date}: ${hoveredDay.hours} hours logged` : 'Hover squares to view hours'}
+            {hoveredDay ? `${hoveredDay.date}: ${hoveredDay.hours} hours logged` : 'Hover blocks to view duration'}
           </span>
         </div>
 
@@ -96,7 +182,9 @@ export const GoalsProgressView: React.FC = () => {
                 key={d.day}
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`w-3 h-3 rounded-xs ${getHeatmapColor(d.hours)} transition-all hover:ring-2 hover:ring-primary cursor-pointer`}
+                className={`w-3 h-3 rounded-xs ${getHeatmapColor(
+                  d.hours
+                )} transition-all hover:ring-2 hover:ring-primary cursor-pointer`}
               ></div>
             ))}
           </div>
@@ -104,7 +192,12 @@ export const GoalsProgressView: React.FC = () => {
 
         {/* Legend */}
         <div className="flex items-center justify-between text-[11px] text-on-surface-variant pt-2 border-t border-surface-variant/30">
-          <span>Total Deep Work: <strong>412 Hours Logged</strong></span>
+          <span>
+            Total Measured Deep Work:{' '}
+            <strong>
+              {analytics ? `${analytics.study_time_week_hours}h this week` : '14.5 Hours Logged'}
+            </strong>
+          </span>
           <div className="flex items-center gap-1.5">
             <span>Less</span>
             <span className="w-2.5 h-2.5 rounded-xs bg-surface-container"></span>
@@ -117,7 +210,7 @@ export const GoalsProgressView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Domain Skill Mastery Trees */}
+      {/* Domain Skill Mastery Trees */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
         {/* Track 1: MBA Product Management */}
         <div className="bg-surface-container-lowest dark:bg-dark-surface p-space-lg rounded-2xl border border-surface-variant/40 dark:border-dark-border shadow-sm flex flex-col justify-between gap-4">

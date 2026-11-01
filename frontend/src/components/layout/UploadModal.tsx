@@ -88,6 +88,7 @@ export const UploadModal: React.FC = () => {
         formData.append('file', selectedFile);
         formData.append('title', title);
         formData.append('type', category.toLowerCase());
+        formData.append('res_type', category.toLowerCase());
         formData.append('course_id', associatedCourse);
         formData.append('author', author);
         formData.append('description', summary);
