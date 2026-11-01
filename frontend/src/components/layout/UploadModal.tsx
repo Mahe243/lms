@@ -288,6 +288,31 @@ export const UploadModal: React.FC = () => {
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface dark:bg-dark-surface-2 border border-surface-variant/60 text-xs text-on-surface dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary font-mono"
                 />
               </div>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] text-on-surface-variant font-semibold">Quick Test YouTube Samples:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkUrl('https://www.youtube.com/watch?v=zjkBMFhNj_g');
+                    setTitle('Andrej Karpathy: Intro to Large Language Models');
+                    setCategory('Video Lecture');
+                  }}
+                  className="px-2 py-0.5 rounded bg-surface-container text-[10px] font-code-sm hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                >
+                  🤖 Karpathy LLMs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkUrl('https://www.youtube.com/watch?v=e_H8n1xL_g8');
+                    setTitle('Prof. Aswath Damodaran: Corporate Valuation Masterclass');
+                    setCategory('Video Lecture');
+                  }}
+                  className="px-2 py-0.5 rounded bg-surface-container text-[10px] font-code-sm hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                >
+                  📈 Damodaran Valuation
+                </button>
+              </div>
             </div>
           )}
 

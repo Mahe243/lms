@@ -16,8 +16,19 @@ export const ClassroomView: React.FC = () => {
     setIsUploadModalOpen,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'reader' | 'matrix' | 'code' | 'notion' | 'quiz'>('reader');
+  const [activeTab, setActiveTab] = useState<'reader' | 'matrix' | 'code' | 'notion' | 'quiz' | 'ai-bot'>('reader');
   
+  // AI Bot in Classroom state
+  const [aiBotInput, setAiBotInput] = useState('');
+  const [aiBotMessages, setAiBotMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string; time: string }>>([
+    {
+      sender: 'bot',
+      text: 'Hello Maheswar! I am your AI Study Copilot for this lecture. You can ask me to summarize the video, explain difficult terms, derive formulas, or generate flashcards.',
+      time: 'Just now'
+    }
+  ]);
+  const [isAiBotTyping, setIsAiBotTyping] = useState(false);
+
   // Real HTML5 Video Player state
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -181,6 +192,40 @@ export const ClassroomView: React.FC = () => {
     setTimeout(() => setNoteSaved(false), 2000);
   };
 
+  const handleAiBotSend = (customPrompt?: string) => {
+    const textToSend = customPrompt || aiBotInput;
+    if (!textToSend.trim() || isAiBotTyping) return;
+
+    setAiBotMessages((prev) => [
+      ...prev,
+      { sender: 'user', text: textToSend, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    ]);
+    if (!customPrompt) setAiBotInput('');
+    setIsAiBotTyping(true);
+
+    setTimeout(() => {
+      setIsAiBotTyping(false);
+      let reply = '';
+      const low = textToSend.toLowerCase();
+      if (low.includes('summarize') || low.includes('summary')) {
+        reply = `### Key Takeaways for: ${activeLesson.title}\n\n` +
+          activeLesson.keyTakeaways.map((t, idx) => `${idx + 1}. **${t.split(':')[0]}**: ${t}`).join('\n') +
+          `\n\n**Practical Conclusion:** This architecture ensures deterministic execution while keeping response latency strictly within enterprise SLAs.`;
+      } else if (low.includes('simple') || low.includes('explain')) {
+        reply = `### Simple Breakdown for ${activeLesson.title}\n\nImagine you are searching for a specific book in a library:\n\n1. **Keyword search (BM25)** is looking for the exact title on the spine (e.g. ISBN or exact name).\n2. **Semantic search (Dense Vectors)** is asking the librarian for "books that feel like mystery novels in space".\n3. **Hybrid RRF** combines the librarian's list with the exact index so you never miss the exact match while still getting conceptual matches!`;
+      } else if (low.includes('quiz') || low.includes('question')) {
+        reply = `### Quick Practice Check:\n\n**Q1:** What is the primary purpose of the dampening constant $k=60$ in Reciprocal Rank Fusion?\n*Hint:* Consider what happens to rank 1 vs rank 2 without it!\n\n**Q2:** When is BM25 strictly superior to vector search?\n*Hint:* Think about error codes, serial numbers, and exact product SKUs.`;
+      } else {
+        reply = `### Analytical Response:\n\nRegarding *"**${textToSend}**"* in this lecture:\n\n- The core principle relies on invariant constraints and latency budgets.\n- You can review the companion notes in the **Deep-Dive Reader** tab or run simulations in the **Code Sandbox**!`;
+      }
+
+      setAiBotMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: reply, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+      ]);
+    }, 600);
+  };
+
   const handleRunCode = () => {
     setIsRunningCode(true);
     setCodeOutput(null);
@@ -225,16 +270,43 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     }
   };
 
-  const isYouTube = activeVideoUrl.includes('youtube.com') || activeVideoUrl.includes('youtu.be');
+  const isYouTube =
+    activeVideoUrl.includes('youtube.com') ||
+    activeVideoUrl.includes('youtu.be') ||
+    /^[a-zA-Z0-9_-]{11}$/.test(activeVideoUrl.trim());
+
   const getYouTubeEmbedUrl = (url: string) => {
-    let videoId = '';
-    if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1]?.split('?')[0];
-    } else if (url.includes('v=')) {
-      videoId = url.split('v=')[1]?.split('&')[0];
+    try {
+      if (!url) return '';
+      const clean = url.trim();
+      let videoId = '';
+      if (clean.includes('youtube.com/embed/')) {
+        videoId = clean.split('youtube.com/embed/')[1]?.split(/[?&]/)[0] || '';
+      } else if (clean.includes('youtu.be/')) {
+        videoId = clean.split('youtu.be/')[1]?.split(/[?&]/)[0] || '';
+      } else if (clean.includes('youtube.com/shorts/')) {
+        videoId = clean.split('youtube.com/shorts/')[1]?.split(/[?&]/)[0] || '';
+      } else if (clean.includes('youtube.com/live/')) {
+        videoId = clean.split('youtube.com/live/')[1]?.split(/[?&]/)[0] || '';
+      } else if (clean.includes('v=')) {
+        videoId = clean.split('v=')[1]?.split('&')[0] || '';
+      } else if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) {
+        videoId = clean;
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1` : clean;
+    } catch {
+      return url;
     }
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
   };
+
+  const youtubePresets = [
+    { title: 'Andrej Karpathy: Intro to LLMs', url: 'https://www.youtube.com/watch?v=zjkBMFhNj_g', tag: 'AI' },
+    { title: 'Stanford: Vector DB & RAG', url: 'https://www.youtube.com/watch?v=QdDoFfkVkcw', tag: 'RAG' },
+    { title: 'Damodaran: Valuation Masterclass', url: 'https://www.youtube.com/watch?v=e_H8n1xL_g8', tag: 'Valuation' },
+    { title: 'MIT: Central Banking & Rates', url: 'https://www.youtube.com/watch?v=1qhT33g3K0g', tag: 'Finance' },
+    { title: 'Flink: Event-Driven Streaming', url: 'https://www.youtube.com/watch?v=B7bV31xW88s', tag: 'Data' },
+    { title: '3Blue1Brown: Neural Networks', url: 'https://www.youtube.com/watch?v=aircAruvnKk', tag: 'Math' }
+  ];
 
   const currentCourse = courses.find((c) => c.id === activeCourseId) || courses[0];
 
@@ -315,6 +387,81 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
         {/* Left Column: Media Player & Content Reader (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-space-md">
+          {/* Video Player Source & Controls Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/40 dark:border-dark-border text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`px-2 py-0.5 rounded-full font-code-sm font-bold text-[10px] flex items-center gap-1 ${
+                isYouTube
+                  ? 'bg-red-600/10 text-red-600 dark:text-red-400'
+                  : 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400'
+              }`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                {isYouTube ? 'YouTube HD Stream' : 'Local / Direct Video'}
+              </span>
+              <span className="font-semibold text-on-surface dark:text-dark-text truncate max-w-xs sm:max-w-md">
+                {activeLesson.title}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCustomUrlInput(!showCustomUrlInput)}
+                className="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm"
+                title="Paste any YouTube or video URL"
+              >
+                <span className="material-symbols-outlined text-[16px]">smart_display</span>
+                <span>Paste YouTube URL</span>
+              </button>
+
+              <label className="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm">
+                <span className="material-symbols-outlined text-[16px]">file_upload</span>
+                <span>Play Local File</span>
+                <input type="file" accept="video/*" className="hidden" onChange={handleLocalVideoUpload} />
+              </label>
+
+              <button
+                onClick={() => setActiveTab('ai-bot')}
+                className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary dark:text-inverse-primary hover:bg-primary hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer"
+                title="Ask AI Study Bot"
+              >
+                <span className="material-symbols-outlined text-[16px]">smart_toy</span>
+                <span>Ask AI Bot</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Custom URL Input Bar */}
+          {showCustomUrlInput && (
+            <form
+              onSubmit={handleCustomUrlSubmit}
+              className="p-3 rounded-xl bg-surface-container-lowest dark:bg-dark-surface border border-primary/30 shadow-md flex flex-col sm:flex-row items-center gap-2 animate-fadeIn"
+            >
+              <span className="material-symbols-outlined text-primary text-[20px] hidden sm:inline">link</span>
+              <input
+                type="text"
+                placeholder="Paste YouTube link (e.g. https://www.youtube.com/watch?v=zjkBMFhNj_g or ID)..."
+                value={customVideoUrlInput}
+                onChange={(e) => setCustomVideoUrlInput(e.target.value)}
+                className="flex-1 w-full px-3 py-1.5 rounded-lg bg-surface dark:bg-dark-surface-2 border border-surface-variant/50 text-xs text-on-surface dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+              />
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-primary text-white text-xs font-bold cursor-pointer hover:bg-primary-container"
+                >
+                  Play Video
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomUrlInput(false)}
+                  className="px-2.5 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* Real Working Video Player */}
           <div
             ref={videoContainerRef}
@@ -526,6 +673,29 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
             )}
           </div>
 
+          {/* Curated YouTube Lectures Quick-Pick */}
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/30 text-xs overflow-x-auto">
+            <span className="font-bold text-[10px] uppercase font-code-sm text-on-surface-variant shrink-0 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px] text-red-500">play_circle</span>
+              YouTube Lectures:
+            </span>
+            <div className="flex items-center gap-1.5">
+              {youtubePresets.map((preset, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setActiveVideoUrl(preset.url);
+                    setVideoError(false);
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-surface-container-highest hover:bg-primary hover:text-white transition-all text-[11px] font-semibold whitespace-nowrap flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="px-1 py-0.2 rounded bg-black/10 dark:bg-white/10 text-[9px] font-code-sm">{preset.tag}</span>
+                  <span>{preset.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Navigation Tabs */}
           <div className="flex items-center gap-1 bg-surface-container-low dark:bg-dark-surface-2 p-1 rounded-xl border border-surface-variant/40 dark:border-dark-border overflow-x-auto">
             <button
@@ -583,6 +753,18 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               <span className="material-symbols-outlined text-[16px]">quiz</span>
               <span>Knowledge Check</span>
               {quizSubmitted && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+            </button>
+            <button
+              onClick={() => setActiveTab('ai-bot')}
+              className={`px-4 py-2 rounded-lg text-xs font-label-md font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                activeTab === 'ai-bot'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-primary dark:text-inverse-primary hover:bg-primary/10'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">smart_toy</span>
+              <span>Ask AI Study Bot</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             </button>
           </div>
 
@@ -836,6 +1018,108 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                   </button>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB 6: AI STUDY BOT */}
+          {activeTab === 'ai-bot' && (
+            <div className="bg-surface-container-lowest dark:bg-dark-surface p-space-lg rounded-2xl border border-surface-variant/40 dark:border-dark-border shadow-sm flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-surface-variant/30 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+                  </div>
+                  <div>
+                    <h3 className="font-headline-sm text-base font-serif font-bold text-on-surface dark:text-dark-text">
+                      AI Study Copilot ? Lesson Intelligence
+                    </h3>
+                    <p className="text-xs text-on-surface-variant dark:text-dark-text-muted">
+                      Contextualized to: <span className="font-semibold text-primary">{activeLesson.title}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-code-sm font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Online
+                </span>
+              </div>
+
+              {/* Quick Prompt Chips */}
+              <div className="flex items-center gap-2 overflow-x-auto text-xs pb-1">
+                <button
+                  onClick={() => handleAiBotSend('Summarize the top 3 takeaways of this video lesson')}
+                  className="px-3 py-1.5 rounded-full bg-surface-container-high dark:bg-dark-surface-2 hover:bg-primary hover:text-white transition-all text-xs font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">summarize</span>
+                  <span>Summarize Video</span>
+                </button>
+                <button
+                  onClick={() => handleAiBotSend('Explain this concept in simple terms with an analogy')}
+                  className="px-3 py-1.5 rounded-full bg-surface-container-high dark:bg-dark-surface-2 hover:bg-primary hover:text-white transition-all text-xs font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">lightbulb</span>
+                  <span>Explain Simply</span>
+                </button>
+                <button
+                  onClick={() => handleAiBotSend('Generate 2 practice quiz questions on this topic')}
+                  className="px-3 py-1.5 rounded-full bg-surface-container-high dark:bg-dark-surface-2 hover:bg-primary hover:text-white transition-all text-xs font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">quiz</span>
+                  <span>Quiz Me</span>
+                </button>
+              </div>
+
+              {/* Chat Thread */}
+              <div className="space-y-3 max-h-96 overflow-y-auto p-3 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/30 text-xs font-body-md leading-relaxed">
+                {aiBotMessages.map((m, idx) => (
+                  <div key={idx} className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                    <div
+                      className={`p-3 rounded-xl max-w-[85%] whitespace-pre-line ${
+                        m.sender === 'user'
+                          ? 'bg-primary text-white rounded-br-none'
+                          : 'bg-surface-container-lowest dark:bg-dark-surface text-on-surface dark:text-dark-text border border-surface-variant/40 rounded-bl-none shadow-sm'
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant/60 mt-0.5 px-1">{m.time}</span>
+                  </div>
+                ))}
+
+                {isAiBotTyping && (
+                  <div className="p-2.5 rounded-xl bg-surface-container-lowest dark:bg-dark-surface border border-surface-variant/40 w-16 flex items-center gap-1 text-primary">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.2s]"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.4s]"></span>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAiBotSend();
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="Ask a question about this lecture..."
+                  value={aiBotInput}
+                  onChange={(e) => setAiBotInput(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl bg-surface dark:bg-dark-surface-2 border border-surface-variant/50 text-xs text-on-surface dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary font-body-md"
+                />
+                <button
+                  type="submit"
+                  disabled={!aiBotInput.trim() || isAiBotTyping}
+                  className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-container disabled:opacity-40 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-[16px]">send</span>
+                  <span>Ask</span>
+                </button>
+              </form>
             </div>
           )}
         </div>

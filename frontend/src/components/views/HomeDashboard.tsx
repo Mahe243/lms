@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, courses, setCurrentPath, selectCourse, setIsFastRecallOpen } = useApp();
+  const { user, courses, setCurrentPath, selectCourse, setIsFastRecallOpen, setIsUploadModalOpen } = useApp();
 
   const handleResumeCourse = (courseId: string) => {
     selectCourse(courseId);
@@ -207,7 +207,7 @@ export const HomeDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-space-sm self-start lg:self-center">
+            <div className="flex flex-wrap items-center gap-space-sm self-start lg:self-center">
               <button
                 onClick={() => handleResumeCourse('ai-pm-llm')}
                 className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-container text-white font-label-md text-sm font-bold flex items-center gap-2 shadow-lg hover:shadow-primary/30 transition-all cursor-pointer group"
@@ -216,6 +216,14 @@ export const HomeDashboard: React.FC = () => {
                 <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">
                   arrow_forward
                 </span>
+              </button>
+
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-label-md text-sm font-bold flex items-center gap-2 border border-white/20 transition-all cursor-pointer backdrop-blur-sm"
+              >
+                <span className="material-symbols-outlined text-[20px]">upload_file</span>
+                <span>Upload Resources</span>
               </button>
             </div>
           </div>

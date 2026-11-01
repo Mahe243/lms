@@ -80,7 +80,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [courses] = useState<Course[]>(coursesData);
   const [activeCourseId, setActiveCourseId] = useState<string>('ai-pm-llm');
   const [activeLesson, setActiveLesson] = useState<Lesson>(currentClassroomLesson);
-  const [activeVideoUrl, setActiveVideoUrl] = useState<string>(currentClassroomLesson.videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string>(currentClassroomLesson.videoUrl || 'https://www.youtube.com/watch?v=zjkBMFhNj_g');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const availableLessons = courseLessonsMap[activeCourseId] || [currentClassroomLesson];

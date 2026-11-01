@@ -101,7 +101,7 @@ export const currentClassroomLesson: Lesson = {
   moduleTitle: 'Module 03 • Advanced Context Compression & Quantization',
   duration: '24:18',
   completed: false,
-  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  videoUrl: 'https://www.youtube.com/watch?v=zjkBMFhNj_g',
   keyTakeaways: [
     'Dense vector search often fails on exact alphanumeric tokens (SKUs, legal clauses, ticker symbols, tax codes).',
     'BM25 provides deterministic keyword precision with inverted indexes but suffers from vocabulary mismatch and synonym blindness.',
@@ -223,7 +223,7 @@ export const courseLessonsMap: Record<string, Lesson[]> = {
       moduleTitle: 'Module 01 • Vector Compression & Memory Optimization',
       duration: '18:45',
       completed: true,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=QdDoFfkVkcw',
       keyTakeaways: [
         'Scalar Quantization (SQ8) compresses 32-bit floats into 8-bit integers, yielding a 4x memory reduction with minimal recall loss (< 1%).',
         'Product Quantization (PQ) divides D-dimensional vectors into m orthogonal sub-spaces and quantizes each with k-means centroids.',
@@ -249,7 +249,7 @@ SQ8 normalizes dimensions into [-128, 127], shrinking memory by 75%. Product Qua
       moduleTitle: 'Module 02 • Inference Latency & KV Paging',
       duration: '21:10',
       completed: true,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=9-LPEtJ_1rU',
       keyTakeaways: [
         'Speculative decoding pairs a small draft model with a large target model to verify tokens in parallel batches.',
         'PagedAttention solves KV cache memory fragmentation by allocating non-contiguous virtual memory blocks like OS virtual paging.'
@@ -277,7 +277,7 @@ Memory bandwidth is the primary bottleneck in autoregressive token generation. A
       moduleTitle: 'Module 04 • Neural Reranking at P99 Constraints',
       duration: '16:30',
       completed: false,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=1qhT33g3K0g',
       keyTakeaways: [
         'Cross-encoders perform full bidirectional self-attention between query and document text.',
         'FlashRank distills heavy Cross-Encoders into compact ONNX models executing in under 8ms on CPU.'
@@ -307,7 +307,7 @@ First-stage bi-encoders produce candidates in under 15ms. Second-stage cross-enc
       moduleTitle: 'Module 01 • Monetary Frameworks & Inflation Targets',
       duration: '28:15',
       completed: true,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=W3a49P85zfc',
       keyTakeaways: [
         'The Taylor Rule prescribes policy rates based on output gap and inflation gap: i = r* + π + 0.5(π - π*) + 0.5(y - y*).',
         'Emerging market central banks must adjust for exchange rate shocks and capital outflow pressures.'
@@ -335,7 +335,7 @@ The Flexible Inflation Targeting Framework (FITF) balances the 4% CPI midpoint w
       moduleTitle: 'Module 02 • Operational Liquidity Corridors',
       duration: '22:40',
       completed: false,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=e_H8n1xL_g8',
       keyTakeaways: [
         'SDF acts as the uncollateralized floor of the LAF liquidity corridor.',
         'Marginal Standing Facility (MSF) acts as the penalized penal ceiling for emergency overnight borrowing.'
@@ -365,7 +365,7 @@ The RBI operates a symmetric corridor with Repo at the center, SDF at the floor 
       moduleTitle: 'Module 01 • Discounted Cash Flow Mechanics',
       duration: '31:20',
       completed: false,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=p4vW7t2oMOU',
       keyTakeaways: [
         'Terminal Value typically constitutes 60-85% of total enterprise value in DCF models.',
         'Perpetual Growth rate g must strictly remain below long-term nominal GDP growth.'
@@ -396,7 +396,7 @@ Exit Multiple Method: TV = EBITDA_{n} * Target Multiple.`,
       moduleTitle: 'Module 01 • Healthcare Marketplace Topology',
       duration: '27:10',
       completed: false,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=Xh0wG7GzD4s',
       keyTakeaways: [
         'Healthcare transit mandates 99.8% on-time pickup SLAs for chemotherapy and dialysis appointments.',
         'Dual-dispatch algorithms pre-assign backup drivers 15 minutes before scheduled departure.'
@@ -426,7 +426,7 @@ Standard rideshare drivers can cancel freely. NEMT healthcare rides enforce auto
       moduleTitle: 'Module 01 • Distributed Stream Processing',
       duration: '29:45',
       completed: true,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+      videoUrl: 'https://www.youtube.com/watch?v=B7bV31xW88s',
       keyTakeaways: [
         'Asynchronous Barrier Snapshotting injects lightweight checkpoint barriers into stream flows without pausing execution.',
         'RocksDB state backend maintains out-of-core state on disk while caching hot keys in off-heap block memory.'
@@ -514,7 +514,7 @@ export const libraryItemsData: LibraryItem[] = [
     fullNotes: `# Video Lecture Notes: Low Latency RAG Architectures\n- Inverted index for BM25 exact match (SKUs, IDs, model numbers).\n- In-memory HNSW vector indexes for semantic intent.\n- Reciprocal Rank Fusion: RRF = 1 / (60 + rank). Prevents bias toward dense cosine scores.\n- Quantization: SQ8 shrinks float32 vectors to int8, cutting RAM by 75% while keeping >99% recall.`,
     citation: 'Rostova, E. (2026). Low-Latency RAG Architectures. Stanford AI Lecture Series.',
     bookmarked: true,
-    fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    fileUrl: 'https://www.youtube.com/watch?v=zjkBMFhNj_g',
     fileType: 'video/mp4',
     fileSize: '48.2 MB',
   },
@@ -532,7 +532,7 @@ export const libraryItemsData: LibraryItem[] = [
     fullNotes: `# Central Bank Operations Summary\n- The policy corridor operates between SDF (floor) and MSF (ceiling).\n- Liquidity absorption via overnight reverse repo vs fine-tuning variable rate reverse repo (VRRR).\n- Real interest rate differentials and capital flow volatility in emerging markets.`,
     citation: 'Patel, R. (2025). Advanced Monetary Policy Transmission. National Banking Institute.',
     bookmarked: false,
-    fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    fileUrl: 'https://www.youtube.com/watch?v=1qhT33g3K0g',
     fileType: 'video/mp4',
     fileSize: '54.6 MB',
   },

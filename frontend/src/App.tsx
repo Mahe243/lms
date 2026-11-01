@@ -5,6 +5,7 @@ import { Header } from './components/layout/Header';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { QuickRecallModal } from './components/layout/QuickRecallModal';
 import { UploadModal } from './components/layout/UploadModal';
+import { StudyBotWidget } from './components/layout/StudyBotWidget';
 import { HomeDashboard } from './components/views/HomeDashboard';
 import { ClassroomView } from './components/views/ClassroomView';
 import { AITutorView } from './components/views/AITutorView';
@@ -64,6 +65,7 @@ const MainLayout: React.FC = () => {
       <CommandPalette />
       <QuickRecallModal />
       <UploadModal />
+      <StudyBotWidget />
     </div>
   );
 };
