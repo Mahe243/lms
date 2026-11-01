@@ -160,7 +160,7 @@ export const SettingsView: React.FC = () => {
                 Gemini API Key (Optional)
               </h3>
               <p className="text-[11px] text-on-surface-variant">
-                Connect live Gemini 1.5/2.0 API directly to Professor Nova for unrestricted real-time AI responses!
+                Connect live Gemini 2.5 Flash / 2.0 API directly to Professor Nova for unrestricted real-time AI responses!
               </p>
             </div>
           </div>
@@ -173,9 +173,13 @@ export const SettingsView: React.FC = () => {
               onChange={(e) => setApiKeyInput(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-surface dark:bg-dark-surface-2 border border-surface-variant/50 text-xs font-mono text-on-surface dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <span className="text-[10px] text-on-surface-variant/70 mt-1 block">
-              Stored locally on your machine in browser localStorage only. Leave empty to use Professor Nova's fast built-in cognitive model.
-            </span>
+            <div className="flex flex-col gap-1 mt-2 text-[11px] text-on-surface-variant/80">
+              <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-medium">
+                <span className="material-symbols-outlined text-[15px]">security</span>
+                <span>Security Notice: Browser keys are stored in local storage. For best security, configure <code>GEMINI_API_KEY</code> as a server-side environment variable in Vercel.</span>
+              </span>
+              <span>Leave empty to use the server environment's configured AI model and credentials.</span>
+            </div>
           </div>
         </div>
 

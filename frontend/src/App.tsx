@@ -17,7 +17,7 @@ import { GoalsProgressView } from './components/views/GoalsProgressView';
 import { SettingsView } from './components/views/SettingsView';
 
 const MainLayout: React.FC = () => {
-  const { currentPath } = useApp();
+  const { currentPath, isEphemeralStorage, isBannerDismissed, setIsBannerDismissed } = useApp();
 
   const renderActiveView = () => {
     switch (currentPath) {
@@ -57,6 +57,22 @@ const MainLayout: React.FC = () => {
 
         {/* Dynamic Canvas View */}
         <main className="relative pt-16 flex-1 w-full overflow-x-hidden">
+          {isEphemeralStorage && !isBannerDismissed && (
+            <div className="bg-amber-500/10 dark:bg-amber-500/20 border-b border-amber-500/30 px-space-lg py-2 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3 shadow-sm select-none">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-500 text-[18px]">cloud_off</span>
+                <span>
+                  <strong>Ephemeral Storage Notice:</strong> Running on serverless with temporary SQLite in <code>/tmp</code>. Set <code>DATABASE_URL</code> to a hosted PostgreSQL instance (Neon or Supabase) in Vercel to preserve courses and study records across cold starts.
+                </span>
+              </div>
+              <button
+                onClick={() => setIsBannerDismissed(true)}
+                className="text-amber-800 dark:text-amber-200 hover:text-amber-950 font-bold px-2 py-0.5 rounded hover:bg-amber-500/20 cursor-pointer whitespace-nowrap"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {renderActiveView()}
         </main>
       </div>

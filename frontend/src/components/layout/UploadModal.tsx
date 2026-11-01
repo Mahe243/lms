@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import confetti from 'canvas-confetti';
 
 export const UploadModal: React.FC = () => {
-  const { isUploadModalOpen, setIsUploadModalOpen, addLibraryItem, courses, setActiveVideoUrl, setCurrentPath, user } = useApp();
+  const { isUploadModalOpen, setIsUploadModalOpen, addLibraryItem, courses, setActiveVideoUrl, setCurrentPath, user, isEphemeralStorage } = useApp();
   
   const [activeTab, setActiveTab] = useState<'file' | 'link'>('file');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -214,6 +214,14 @@ export const UploadModal: React.FC = () => {
 
         {/* Scrollable Form */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs font-body-md">
+          {isEphemeralStorage && (
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px] text-amber-500 shrink-0">info</span>
+              <span>
+                <strong>Ephemeral Storage Mode:</strong> Uploaded files are stored in serverless temporary memory (<code>/tmp</code>) and reset across cold starts. For persistent materials, paste an external URL (YouTube, ArXiv) or configure cloud database storage.
+              </span>
+            </div>
+          )}
           {activeTab === 'file' ? (
             <div>
               {/* Drag & Drop Area */}
@@ -305,7 +313,7 @@ export const UploadModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setLinkUrl('https://www.youtube.com/watch?v=e_H8n1xL_g8');
+                    setLinkUrl('https://www.youtube.com/watch?v=znmQ7oMiQrM');
                     setTitle('Prof. Aswath Damodaran: Corporate Valuation Masterclass');
                     setCategory('Video Lecture');
                   }}

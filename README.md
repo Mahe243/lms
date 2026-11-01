@@ -125,3 +125,52 @@ npm run dev
 ```
 
 Visit **`http://localhost:5173`** to enter the Learnova Personal LMS Platform.
+
+---
+
+## ☁️ Deployment Guide (Vercel Serverless)
+
+Learnova is architected for unified single-project deployment on Vercel:
+
+### 1. Project Root & Settings
+- **Root Directory:** `./` (Repository root — **do NOT select `frontend` or split into two projects**).
+- **Configuration:** Managed entirely by root [`vercel.json`](file:///C:/Users/reddy/Downloads/lms/vercel.json).
+- **Frontend SPA:** Built via `cd frontend && npm install && npm run build` into `frontend/dist` and served statically with SPA routing.
+- **Backend API:** Handled by the Python 3.12+ Serverless Function at [`api/index.py`](file:///C:/Users/reddy/Downloads/lms/api/index.py) routing `/api/*`, `/health`, `/docs`, `/openapi.json`, and `/uploads/*`.
+
+### 2. Database Persistence Setup
+- **Development:** Defaults to local SQLite file (`learnova.db`).
+- **Production (Vercel Serverless):** Serverless function containers are ephemeral (data in `/tmp` resets between cold starts). For durable persistence across sessions, set `DATABASE_URL` in your Vercel Project Settings:
+  ```env
+  DATABASE_URL=postgresql://user:password@host.pooler.supabase.com:6543/postgres?sslmode=require
+  # Or Neon: postgresql://user:password@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+  ```
+  > *Note:* The backend automatically normalizes `postgres://` URLs to `postgresql://` for modern SQLAlchemy drivers.
+- **Ephemeral Storage Notification:** If `DATABASE_URL` is omitted in serverless mode, Learnova safely falls back to `/tmp/learnova.db`, marks `"persistence": "ephemeral"` in `GET /health`, and alerts the user with a dismissible UI warning banner.
+
+### 3. Server-Side Environment Variables
+Configure these in Vercel **Settings $\rightarrow$ Environment Variables**:
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | PostgreSQL connection string | `sqlite:////tmp/learnova.db` (ephemeral) |
+| `GEMINI_API_KEY` | Server-side API key for Professor Nova AI Tutor | *None* (offline fallback mode) |
+| `AI_MODEL` | Gemini model name | `gemini-2.5-flash` |
+| `LEARNOVA_ACCESS_TOKEN` | Bearer token protecting destructive endpoints | `learnova_personal_secret` |
+| `REQUIRE_AUTH` | Require auth headers on non-destructive APIs | `false` |
+| `SEED_DEMO_ACTIVITY` | Seed synthetic study sessions and focus minutes | `false` (clean genuine zero metrics) |
+
+---
+
+## 🧪 Testing & Verification
+
+```bash
+# Run complete backend test suite (20 tests passing)
+python -m pytest backend/tests
+
+# Verify frontend TypeScript build (0 errors)
+cd frontend
+npm run build
+
+# Run frontend static code analysis
+npx oxlint
+```

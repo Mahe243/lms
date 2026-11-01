@@ -120,7 +120,7 @@ export interface MockExam {
   sections: {
     name: string;
     questions: {
-      id: number;
+      id: string | number;
       text: string;
       options: string[];
       correctAnswer: number;

@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.config import settings
-from backend.database import Base, engine, SessionLocal
+from backend.config import settings, is_serverless
+from backend.database import Base, engine, SessionLocal, ensure_db_initialized
 from backend.services.demo_data import seed_demo_data
 
 from backend.routers import (
@@ -17,18 +17,8 @@ from backend.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables on startup (and run schema check)
-    Base.metadata.create_all(bind=engine)
-    # Check if we should seed default demo data on first boot if DB is fresh
-    db = SessionLocal()
-    try:
-        from backend.models import Course
-        if db.query(Course).count() == 0:
-            seed_demo_data(db)
-    except Exception as e:
-        print("Demo seed note:", e)
-    finally:
-        db.close()
+    # Idempotent lazy initialization handles tables and demo seed
+    ensure_db_initialized()
     yield
 
 app = FastAPI(
@@ -55,7 +45,6 @@ if settings.ALLOWED_ORIGINS:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=approved_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,7 +90,10 @@ def health_check():
     return {
         "status": "healthy",
         "app": settings.PROJECT_NAME,
-        "version": settings.PROJECT_VERSION
+        "version": settings.PROJECT_VERSION,
+        "persistence": "ephemeral" if settings.is_ephemeral_storage else "persistent",
+        "database_type": "sqlite" if settings.DATABASE_URL.startswith("sqlite") else "postgresql",
+        "serverless": is_serverless
     }
 
 @app.get("/")

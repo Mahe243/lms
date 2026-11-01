@@ -31,7 +31,10 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   const url = `${API_BASE_URL}${path}`;
 
   // Retrieve auth token if configured
-  const token = localStorage.getItem('learnova_access_token') || 'learnova-default-secure-token';
+  const token =
+    localStorage.getItem('learnova_access_token') ||
+    import.meta.env.VITE_ACCESS_TOKEN ||
+    'learnova_personal_secret';
 
   const defaultHeaders: Record<string, string> = {
     'X-Learnova-Token': token,
@@ -100,4 +103,17 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
     throw new ApiError(friendlyMessage, 0, null, true);
   }
+}
+
+export interface HealthStatus {
+  status: string;
+  app: string;
+  version: string;
+  persistence?: 'ephemeral' | 'persistent';
+  database_type?: string;
+  serverless?: boolean;
+}
+
+export async function checkHealth(): Promise<HealthStatus> {
+  return apiClient<HealthStatus>('/health');
 }

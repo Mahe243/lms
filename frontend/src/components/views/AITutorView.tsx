@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { ChatMessage } from '../../types';
 import { initialChatMessages } from '../../data/mockData';
@@ -33,7 +33,7 @@ export const AITutorView: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessage = useCallback(async (textToSend?: string) => {
     const text = textToSend || inputValue;
     if (!text.trim() || isTyping) return;
 
@@ -145,7 +145,7 @@ Would you like me to provide a worked numerical example or test your understandi
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [inputValue, isTyping, conversationId, activeCourseId, persona, user.weeklyXP, updateUser]);
 
   const handleDrillSubmit = (correctIdx: number) => {
     setIsDrillSubmitted(true);

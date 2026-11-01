@@ -86,7 +86,7 @@ export const HomeDashboard: React.FC = () => {
                 </span>
               </div>
               <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-                Top {user.streakTopPercent}% cohort velocity
+                {user.streakDays > 0 ? `Top ${user.streakTopPercent || 5}% cohort velocity` : 'Start your daily streak today'}
               </p>
             </div>
           </div>
@@ -143,7 +143,7 @@ export const HomeDashboard: React.FC = () => {
                 </span>
               </div>
               <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-                +18% over last week
+                {user.weeklyXP > 0 ? `${user.weeklyXP.toLocaleString()} XP earned` : 'Complete lessons to earn XP'}
               </p>
             </div>
           </div>
@@ -168,7 +168,7 @@ export const HomeDashboard: React.FC = () => {
                 </span>
               </div>
               <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-                94% recall benchmark
+                {user.retainedNodes > 0 ? `${user.retainedNodes} modules mastered` : 'Master modules via flashcards'}
               </p>
             </div>
           </div>

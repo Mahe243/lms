@@ -54,6 +54,26 @@ def build_system_prompt(
     )
     return prompt
 
+def map_ai_api_error(provider: str, status_code: int, raw_error: str, model: str) -> str:
+    """Transforms raw HTTP and provider errors into clear, actionable user messages."""
+    err_lower = raw_error.lower()
+    if status_code == 404 or "not found" in err_lower or ("model" in err_lower and "not found" in err_lower):
+        return (
+            f"Model `{model}` was not found or has been retired by the provider. "
+            f"Please set AI_MODEL to an active model (e.g. gemini-2.5-flash or gemini-2.0-flash) in your environment variables or Settings."
+        )
+    if status_code in (401, 403) or "api key not valid" in err_lower or "permission_denied" in err_lower or "invalid_api_key" in err_lower:
+        return (
+            f"Invalid or unauthorized {provider.capitalize()} API key. "
+            f"Please verify that your {provider.upper()}_API_KEY is correct in your server environment variables or Settings."
+        )
+    if status_code == 429 or "resource_exhausted" in err_lower or "quota" in err_lower:
+        return (
+            f"{provider.capitalize()} rate limit or quota exceeded. "
+            "Please wait a moment before sending another query, or check your API quota in Google AI Studio."
+        )
+    return f"{provider.capitalize()} API error ({status_code}): {raw_error}"
+
 async def call_gemini(
     api_key: str,
     model: str,
@@ -93,7 +113,8 @@ async def call_gemini(
                     error_msg = err_data["error"].get("message", error_msg)
             except Exception:
                 pass
-            raise Exception(f"Gemini API error ({resp.status_code}): {error_msg}")
+            friendly_err = map_ai_api_error("Gemini", resp.status_code, error_msg, model)
+            raise Exception(friendly_err)
         
         data = resp.json()
         candidates = data.get("candidates", [])
@@ -129,7 +150,15 @@ async def call_openai(
     async with httpx.AsyncClient(timeout=45.0) as client:
         resp = await client.post(url, json=payload, headers=headers)
         if resp.status_code != 200:
-            raise Exception(f"OpenAI API error ({resp.status_code}): {resp.text}")
+            error_msg = resp.text
+            try:
+                err_data = resp.json()
+                if "error" in err_data:
+                    error_msg = err_data["error"].get("message", error_msg)
+            except Exception:
+                pass
+            friendly_err = map_ai_api_error("OpenAI", resp.status_code, error_msg, model or "gpt-4o-mini")
+            raise Exception(friendly_err)
         data = resp.json()
         return data["choices"][0]["message"]["content"]
 
@@ -219,7 +248,7 @@ async def generate_tutor_response(
         if provider == "gemini":
             response_text = await call_gemini(
                 api_key=api_key,
-                model=settings.AI_MODEL if "gemini" in settings.AI_MODEL else "gemini-1.5-flash",
+                model=settings.AI_MODEL if "gemini" in (settings.AI_MODEL or "").lower() else "gemini-2.5-flash",
                 system_prompt=system_prompt,
                 user_message=modified_message,
                 history=history_msgs

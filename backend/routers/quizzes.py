@@ -140,7 +140,7 @@ def grade_response(q_type: str, user_ans: Any, correct_ans: Any, tolerance: floa
     if user_ans is None:
         return False
 
-    if q_type in ["mcq", "true_false"]:
+    if q_type in ["mcq", "multiple_choice", "true_false"]:
         return str(user_ans).strip().lower() == str(correct_ans).strip().lower()
 
     elif q_type == "multi_select":
@@ -216,8 +216,8 @@ def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
         max_score=max_score,
         percentage=pct,
         time_spent_secs=data.time_spent_secs,
-        questions_snapshot=json.dumps(snapshot),
-        responses=json.dumps(graded_responses),
+        questions_snapshot=json.dumps(snapshot, default=str),
+        responses=json.dumps(graded_responses, default=str),
         completed_at=datetime.now(timezone.utc)
     )
     db.add(attempt)

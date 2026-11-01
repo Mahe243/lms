@@ -12,6 +12,7 @@ from backend.schemas import (
     SubtopicCreate, SubtopicOut
 )
 
+from backend.routers.auth import verify_destructive_access
 router = APIRouter(prefix="/api/courses", tags=["Courses"])
 
 def calculate_course_progress(db: Session, course_id: str) -> CourseProgress:
@@ -195,7 +196,7 @@ def update_course(course_id: str, data: CourseUpdate, db: Session = Depends(get_
     prog = calculate_course_progress(db, c.id)
     return course_to_dict(c, prog)
 
-@router.delete("/{course_id}")
+@router.delete("/{course_id}", dependencies=[Depends(verify_destructive_access)])
 def delete_course(course_id: str, db: Session = Depends(get_db)):
     c = db.query(Course).filter(Course.id == course_id).first()
     if not c:

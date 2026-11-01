@@ -26,6 +26,11 @@ class Settings:
     UPLOAD_DIR: Path = Path("/tmp/uploads") if is_serverless else (BASE_DIR / "uploads")
     BACKUP_DIR: Path = Path("/tmp/backups") if is_serverless else (BASE_DIR / "backups")
     
+    @property
+    def is_ephemeral_storage(self) -> bool:
+        """Indicates if database is in temporary storage (/tmp) and subject to loss on cold starts."""
+        return bool(self.DATABASE_URL.startswith("sqlite") and (is_serverless or "/tmp" in self.DATABASE_URL))
+
     # Access Protection & Security
     LEARNOVA_ACCESS_TOKEN: str = os.getenv("LEARNOVA_ACCESS_TOKEN", "learnova_personal_secret")
     REQUIRE_AUTH: bool = os.getenv("REQUIRE_AUTH", "false").lower() in ("true", "1", "yes")
@@ -34,8 +39,11 @@ class Settings:
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "gemini")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    AI_MODEL: str = os.getenv("AI_MODEL", "gemini-1.5-flash")
+    AI_MODEL: str = os.getenv("AI_MODEL", "gemini-2.5-flash")
     
+    # Demo and Seed Configurations
+    SEED_DEMO_ACTIVITY: bool = os.getenv("SEED_DEMO_ACTIVITY", "false").lower() in ("true", "1", "yes")
+
     # Study Settings
     STREAK_MIN_MINUTES: int = 15
     IDLE_TIMEOUT_MINUTES: int = 30

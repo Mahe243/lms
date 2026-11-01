@@ -1,57 +1,121 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { mockExamData } from '../../data/mockData';
 import confetti from 'canvas-confetti';
 import { quizzesApi } from '../../api';
 
+interface ExamQuestion {
+  id: string | number;
+  text: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  topic: string;
+  difficulty?: string;
+}
+
 export const PracticeArenaView: React.FC = () => {
   const { user, updateUser, setCurrentPath } = useApp();
   const [examState, setExamState] = useState<'intro' | 'active' | 'evaluated'>('intro');
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [flagged, setFlagged] = useState<Record<number, boolean>>({});
+  const [answers, setAnswers] = useState<Record<string | number, number>>({});
+  const [flagged, setFlagged] = useState<Record<string | number, boolean>>({});
   const [secondsLeft, setSecondsLeft] = useState(45 * 60);
 
-  const questions = mockExamData.sections[0].questions;
-  const currentQ = questions[currentQuestionIdx];
+  // Question state loaded from backend or mock fallback
+  const [questions, setQuestions] = useState<ExamQuestion[]>(mockExamData.sections[0].questions);
+  const [activeBankId, setActiveBankId] = useState<string | null>(null);
+  const [isSavingAttempt, setIsSavingAttempt] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [percentile, setPercentile] = useState<number | null>(null);
 
-  // Exam Timer Countdown
+  const hasSubmittedRef = useRef(false);
+
+  // Load real question bank questions on mount
   useEffect(() => {
-    let timer: any = null;
-    if (examState === 'active' && secondsLeft > 0) {
-      timer = setInterval(() => {
-        setSecondsLeft((prev) => {
-          if (prev <= 1) {
-            handleFinishExam();
-            return 0;
+    let isMounted = true;
+    async function loadBankQuestions() {
+      try {
+        const banks = await quizzesApi.getBanks('monetary-policy');
+        if (!isMounted) return;
+        const targetBank = banks && banks.length > 0 ? banks[0] : null;
+        if (targetBank) {
+          setActiveBankId(targetBank.id);
+          const qList = await quizzesApi.getQuestions(targetBank.id);
+          if (isMounted && qList && qList.length > 0) {
+            const mapped = qList.map((q) => {
+              let correctIdx = 0;
+              if (typeof q.correct_answer === 'number') {
+                correctIdx = q.correct_answer;
+              } else if (!isNaN(Number(q.correct_answer))) {
+                correctIdx = Number(q.correct_answer);
+              } else if (Array.isArray(q.options)) {
+                const idx = q.options.indexOf(q.correct_answer);
+                if (idx !== -1) correctIdx = idx;
+              }
+              return {
+                id: q.id,
+                text: q.question_text,
+                options: Array.isArray(q.options) ? q.options : [],
+                correctAnswer: correctIdx,
+                explanation: q.explanation || '',
+                topic: q.difficulty ? `${q.difficulty.toUpperCase()} • RBI Diagnostics` : 'Macroeconomics',
+                difficulty: q.difficulty || 'Moderate',
+              };
+            });
+            setQuestions(mapped);
           }
-          return prev - 1;
-        });
-      }, 1000);
+        }
+      } catch (e) {
+        console.log('Loaded local fallback mock exam:', e);
+      }
     }
+    loadBankQuestions();
     return () => {
-      if (timer) clearInterval(timer);
+      isMounted = false;
     };
-  }, [examState, secondsLeft]);
+  }, []);
 
-  const handleStartExam = () => {
-    setExamState('active');
-    setSecondsLeft(45 * 60);
-    setAnswers({});
-    setFlagged({});
-    setCurrentQuestionIdx(0);
-  };
+  const currentQ = questions[currentQuestionIdx] || questions[0];
 
-  const handleSelectOption = (optIdx: number) => {
-    setAnswers((prev) => ({ ...prev, [currentQ.id]: optIdx }));
-  };
+  const submitAttemptToBackend = useCallback(async (answersMap: Record<string | number, number>, durationSecs: number) => {
+    setIsSavingAttempt(true);
+    setSaveError(null);
+    try {
+      const responsesPayload: Record<string, any> = {};
+      questions.forEach((q) => {
+        if (answersMap[q.id] !== undefined) {
+          responsesPayload[String(q.id)] = answersMap[q.id];
+        }
+      });
 
-  const toggleFlag = () => {
-    setFlagged((prev) => ({ ...prev, [currentQ.id]: !prev[currentQ.id] }));
-  };
+      const result: any = await quizzesApi.submitQuiz({
+        quiz_title: mockExamData.title,
+        responses: responsesPayload,
+        course_id: 'monetary-policy',
+        bank_id: activeBankId || undefined,
+        mode: 'exam',
+        time_spent_secs: durationSecs,
+      });
 
-  const handleFinishExam = () => {
+      if (result && typeof result.percentage === 'number') {
+        const pct = result.percentage;
+        const estCohort = Math.min(99.4, Math.max(12, Math.round(pct * 0.95 + 4.5)));
+        setPercentile(estCohort);
+      }
+    } catch (err: any) {
+      console.error('Quiz submit failed:', err);
+      setSaveError(err.message || 'Unable to store exam attempt on server.');
+    } finally {
+      setIsSavingAttempt(false);
+    }
+  }, [questions, activeBankId]);
+
+  const handleFinishExam = useCallback(() => {
+    if (hasSubmittedRef.current) return;
+    hasSubmittedRef.current = true;
     setExamState('evaluated');
+
     let correct = 0;
     questions.forEach((q) => {
       if (answers[q.id] === q.correctAnswer) {
@@ -64,23 +128,61 @@ export const PracticeArenaView: React.FC = () => {
       weeklyXP: user.weeklyXP + earnedXP,
     });
 
-    // Record quiz attempt to database
-    quizzesApi.submitQuiz({
-      course_id: 'monetary-policy',
-      duration_seconds: (45 * 60) - secondsLeft,
-      answers: answers,
-    }).catch((e) => console.log('Saved quiz result locally:', e));
+    const durationSecs = Math.max(1, 45 * 60 - secondsLeft);
+    submitAttemptToBackend(answers, durationSecs);
 
     confetti({
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
     });
+  }, [questions, answers, user.weeklyXP, updateUser, secondsLeft, submitAttemptToBackend]);
+
+  // Exam Timer Countdown - strictly decrements without side-effects in state updater
+  useEffect(() => {
+    let timer: any = null;
+    if (examState === 'active' && secondsLeft > 0) {
+      timer = setInterval(() => {
+        setSecondsLeft((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [examState, secondsLeft]);
+
+  // Separate guarded effect to trigger finish when timer hits zero
+  useEffect(() => {
+    if (examState === 'active' && secondsLeft === 0 && !hasSubmittedRef.current) {
+      handleFinishExam();
+    }
+  }, [secondsLeft, examState, handleFinishExam]);
+
+  const handleStartExam = () => {
+    hasSubmittedRef.current = false;
+    setExamState('active');
+    setSecondsLeft(45 * 60);
+    setAnswers({});
+    setFlagged({});
+    setCurrentQuestionIdx(0);
+    setSaveError(null);
+    setPercentile(null);
+  };
+
+  const handleSelectOption = (optIdx: number) => {
+    if (!currentQ) return;
+    setAnswers((prev) => ({ ...prev, [currentQ.id]: optIdx }));
+  };
+
+  const toggleFlag = () => {
+    if (!currentQ) return;
+    setFlagged((prev) => ({ ...prev, [currentQ.id]: !prev[currentQ.id] }));
   };
 
   const formatTime = (secs: number) => {
+    if (isNaN(secs) || secs < 0) return '00:00';
     const m = Math.floor(secs / 60);
-    const s = secs % 60;
+    const s = Math.floor(secs % 60);
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
@@ -92,8 +194,7 @@ export const PracticeArenaView: React.FC = () => {
     return {
       correct,
       total: questions.length,
-      percentage: Math.round((correct / questions.length) * 100),
-      percentile: 96.4,
+      percentage: questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0,
     };
   };
 
@@ -226,7 +327,7 @@ export const PracticeArenaView: React.FC = () => {
 
               {/* Options List */}
               <div className="space-y-3 mt-6">
-                {currentQ.options.map((opt, optIdx) => {
+                {currentQ.options.map((opt: string, optIdx: number) => {
                   const isSelected = answers[currentQ.id] === optIdx;
                   return (
                     <div
@@ -365,13 +466,25 @@ export const PracticeArenaView: React.FC = () => {
                   <h2 className="font-headline-sm text-2xl font-serif font-bold text-on-surface dark:text-dark-text">
                     Diagnostic Score: {calculateScore().percentage}%
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-code-sm text-xs font-bold">
-                    TOP 3.6% COHORT
-                  </span>
+                  {percentile !== null ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-code-sm text-xs font-bold">
+                      TOP {(100 - percentile).toFixed(1)}% COHORT
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-code-sm text-xs font-bold">
+                      EVALUATION COMPLETE
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-on-surface-variant dark:text-dark-text-muted mt-1">
                   Mastery validated across Macroeconomics, Black-Scholes Greeks, and Distributed Stream Engines.
                 </p>
+                {isSavingAttempt && (
+                  <p className="text-xs text-primary mt-1 animate-pulse flex items-center gap-1 font-semibold">
+                    <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                    Saving attempt to official learning record...
+                  </p>
+                )}
               </div>
             </div>
 
@@ -390,6 +503,25 @@ export const PracticeArenaView: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Failure Notice with Retry */}
+          {saveError && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs flex items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-red-500 text-[20px]">cloud_off</span>
+                <span>
+                  <strong>Server Sync Notice:</strong> {saveError}
+                </span>
+              </div>
+              <button
+                onClick={() => submitAttemptToBackend(answers, Math.max(1, 45 * 60 - secondsLeft))}
+                disabled={isSavingAttempt}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
+              >
+                {isSavingAttempt ? 'Retrying...' : 'Retry Save'}
+              </button>
+            </div>
+          )}
 
           {/* Vulnerability Taxonomy & Solutions Breakdown */}
           <div className="space-y-4">
@@ -426,7 +558,7 @@ export const PracticeArenaView: React.FC = () => {
                   </p>
 
                   <div className="space-y-1.5">
-                    {q.options.map((opt, oIdx) => (
+                    {q.options.map((opt: string, oIdx: number) => (
                       <div
                         key={oIdx}
                         className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${

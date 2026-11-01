@@ -79,9 +79,9 @@ export const ClassroomVideoPlayer: React.FC<ClassroomVideoPlayerProps> = ({
   const lecturePresets = [
     { title: 'Andrej Karpathy: Intro to Large Language Models', url: 'https://www.youtube.com/watch?v=zjkBMFhNj_g', tag: 'AI/LLM' },
     { title: 'Stanford: Vector Databases, RAG & Search', url: 'https://www.youtube.com/watch?v=QdDoFfkVkcw', tag: 'RAG' },
-    { title: 'Prof. Damodaran: Corporate Valuation Masterclass', url: 'https://www.youtube.com/watch?v=e_H8n1xL_g8', tag: 'Finance' },
-    { title: 'MIT OpenCourseWare: Central Banking & Monetary Policy', url: 'https://www.youtube.com/watch?v=1qhT33g3K0g', tag: 'Economics' },
-    { title: 'Apache Flink: Stateful Stream Processing Architecture', url: 'https://www.youtube.com/watch?v=B7bV31xW88s', tag: 'Data' },
+    { title: 'Prof. Damodaran: Corporate Valuation Masterclass', url: 'https://www.youtube.com/watch?v=znmQ7oMiQrM', tag: 'Finance' },
+    { title: 'MIT OpenCourseWare: Central Banking & Monetary Policy', url: 'https://www.youtube.com/watch?v=_SpIaGTq0u8', tag: 'Economics' },
+    { title: 'Apache Kafka in 6 Minutes: Streaming Architecture', url: 'https://www.youtube.com/watch?v=Ch5VhJzaoaI', tag: 'Data' },
     { title: '3Blue1Brown: What is a Neural Network?', url: 'https://www.youtube.com/watch?v=aircAruvnKk', tag: 'Math' }
   ];
 

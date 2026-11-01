@@ -24,12 +24,13 @@ export interface QuestionBankItem {
 }
 
 export interface QuizSubmitPayload {
-  bank_id?: string;
+  quiz_title: string;
+  responses: Record<string, any>;
   course_id?: string;
+  bank_id?: string;
   topic_id?: string;
   mode?: string;
-  duration_seconds: number;
-  answers: Record<string, any>;
+  time_spent_secs?: number;
 }
 
 export interface QuizAttemptResult {

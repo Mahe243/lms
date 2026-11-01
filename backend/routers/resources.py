@@ -10,6 +10,7 @@ from backend.database import get_db
 from backend.models import Resource, ResourceChunk
 from backend.schemas import ResourceCreate, ResourceUpdate, ResourceOut
 from backend.services.text_processor import extract_pdf_pages, extract_text_file, parse_transcript_vtt_srt, chunk_text
+from backend.routers.auth import verify_destructive_access
 
 router = APIRouter(prefix="/api/resources", tags=["Resources"])
 
@@ -232,7 +233,7 @@ def update_resource(resource_id: str, data: ResourceUpdate, db: Session = Depend
     db.refresh(r)
     return resource_to_dict(r)
 
-@router.delete("/{resource_id}")
+@router.delete("/{resource_id}", dependencies=[Depends(verify_destructive_access)])
 def delete_resource(resource_id: str, db: Session = Depends(get_db)):
     r = db.query(Resource).filter(Resource.id == resource_id).first()
     if not r:

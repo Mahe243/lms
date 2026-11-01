@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { NavigationPath } from '../../types';
 
@@ -46,9 +46,11 @@ export const CommandPalette: React.FC = () => {
     opt.category.toLowerCase().includes(query.toLowerCase())
   );
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+  const executeOption = useCallback((opt: SearchOption) => {
+    setCurrentPath(opt.path);
+    setIsCommandPaletteOpen(false);
+    setQuery('');
+  }, [setCurrentPath, setIsCommandPaletteOpen]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -71,13 +73,7 @@ export const CommandPalette: React.FC = () => {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isCommandPaletteOpen, filteredOptions, selectedIndex]);
-
-  const executeOption = (opt: SearchOption) => {
-    setCurrentPath(opt.path);
-    setIsCommandPaletteOpen(false);
-    setQuery('');
-  };
+  }, [isCommandPaletteOpen, filteredOptions, selectedIndex, executeOption, setIsCommandPaletteOpen]);
 
   if (!isCommandPaletteOpen) return null;
 
@@ -95,7 +91,10 @@ export const CommandPalette: React.FC = () => {
             type="text"
             placeholder="Type a command, course, or topic (e.g. 'RAG', 'Options', 'Pomodoro')..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelectedIndex(0);
+            }}
             className="flex-1 bg-transparent border-none outline-none font-body-md text-on-surface dark:text-dark-text placeholder:text-on-surface-variant/60 text-base"
           />
           <kbd className="font-code-sm text-xs bg-surface-container dark:bg-dark-surface-2 px-2 py-0.5 rounded text-on-surface-variant dark:text-dark-text-muted">

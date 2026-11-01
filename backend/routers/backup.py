@@ -16,6 +16,7 @@ from backend.models import (
 )
 from backend.services.demo_data import seed_demo_data, clean_demo_data
 
+from backend.routers.auth import verify_destructive_access
 router = APIRouter(prefix="/api/backup", tags=["Data Backup & Restore"])
 
 @router.get("/export")
@@ -155,7 +156,7 @@ def export_full_backup(db: Session = Depends(get_db)):
 
     return backup_payload
 
-@router.post("/restore")
+@router.post("/restore", dependencies=[Depends(verify_destructive_access)])
 async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Restores workspace from an exported JSON file while preserving relations and detecting duplicates.
@@ -365,7 +366,7 @@ def trigger_seed_demo(db: Session = Depends(get_db)):
     success = seed_demo_data(db)
     return {"message": "Demo data seeded successfully" if success else "Demo data already exists"}
 
-@router.post("/clean-demo")
+@router.post("/clean-demo", dependencies=[Depends(verify_destructive_access)])
 def trigger_clean_demo(db: Session = Depends(get_db)):
     deleted = clean_demo_data(db)
     return {"message": "Demo data cleaned successfully without modifying personal data", "deleted_counts": deleted}

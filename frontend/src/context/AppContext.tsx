@@ -3,7 +3,8 @@ import type { NavigationPath, UserProfile, Course, Lesson, LibraryItem, Flashcar
 import { initialUser, coursesData, currentClassroomLesson, libraryItemsData, flashcardsData, courseLessonsMap } from '../data/mockData';
 import { soundscapeEngine } from '../utils/soundscapes';
 import type { SoundscapeType } from '../utils/soundscapes';
-import { coursesApi, userApi, activityApi, resourcesApi, flashcardsApi, tasksApi } from '../api';
+import { coursesApi, userApi, activityApi, resourcesApi, flashcardsApi, tasksApi, studySessionsApi } from '../api';
+import { checkHealth } from '../api/client';
 
 interface AppContextType {
   currentPath: NavigationPath;
@@ -27,6 +28,10 @@ interface AppContextType {
   isSyncing: boolean;
   syncError: string | null;
   refreshBackendData: () => Promise<void>;
+  isEphemeralStorage: boolean;
+  isBannerDismissed: boolean;
+  setIsBannerDismissed: (dismissed: boolean) => void;
+  activeSessionId: string | null;
 
   // Timer State
   timerSeconds: number;
@@ -141,6 +146,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [isEphemeralStorage, setIsEphemeralStorage] = useState<boolean>(false);
+  const [isBannerDismissed, setIsBannerDismissedState] = useState<boolean>(() => {
+    return sessionStorage.getItem('learnova_ephemeral_banner_dismissed') === 'true';
+  });
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  const setIsBannerDismissed = (dismissed: boolean) => {
+    setIsBannerDismissedState(dismissed);
+    if (dismissed) {
+      sessionStorage.setItem('learnova_ephemeral_banner_dismissed', 'true');
+    } else {
+      sessionStorage.removeItem('learnova_ephemeral_banner_dismissed');
+    }
+  };
 
   // 6. Sprint Tasks & Focus
   const [sprintTasks, setSprintTasks] = useState<Array<{ id: string; text: string; done: boolean }>>([
@@ -205,6 +224,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSyncing(true);
     setSyncError(null);
     try {
+      // 0. Check health & persistence
+      try {
+        const health = await checkHealth();
+        if (health?.persistence === 'ephemeral') {
+          setIsEphemeralStorage(true);
+        } else {
+          setIsEphemeralStorage(false);
+        }
+      } catch {
+        // network note
+      }
+
       // 1. Fetch courses from backend
       const backendCourses = await coursesApi.getCourses();
       if (backendCourses && backendCourses.length > 0) {
@@ -281,8 +312,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (analytics) {
           setUser((prev) => ({
             ...prev,
-            streakDays: analytics.streak_days || prev.streakDays,
-            deepWorkHoursToday: Number((analytics.study_time_today_minutes / 60).toFixed(1)),
+            streakDays: analytics.streak_days ?? prev.streakDays,
+            deepWorkHoursToday: Number(((analytics.study_time_today_minutes ?? 0) / 60).toFixed(1)),
+            weeklyXP: (analytics as any).total_xp ?? prev.weeklyXP,
+            retainedNodes: (analytics as any).completed_topics ?? prev.retainedNodes,
           }));
         }
       } catch (e) {
@@ -365,6 +398,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshBackendData();
     // Record platform visit
     activityApi.recordVisit(`sess-${Date.now()}`).catch(() => {});
+    // Check for active/running study session to restore state
+    studySessionsApi.getActiveSession().then((active) => {
+      if (active && (active.status === 'running' || active.status === 'paused')) {
+        setActiveSessionId(active.id);
+        const plannedSecs = (active.planned_duration_mins || 25) * 60;
+        const remaining = Math.max(0, plannedSecs - (active.actual_duration_secs || 0));
+        setTimerSeconds(remaining);
+        setTimerRunning(active.status === 'running');
+        if (active.session_type === 'deep_work' || active.session_type === 'flow' || active.session_type === 'pomodoro') {
+          setTimerModeState(active.session_type as any);
+        }
+      }
+    }).catch(() => {});
   }, []);
 
   // Periodic heartbeat every 60 seconds to accurately record active study minutes
@@ -428,6 +474,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               weeklyXP: u.weeklyXP + 50,
               deepWorkHoursToday: Number((u.deepWorkHoursToday + 0.4).toFixed(1)),
             }));
+            if (activeSessionId) {
+              const totalSecs = timerMode === 'pomodoro' ? 25 * 60 : timerMode === 'deep_work' ? 50 * 60 : 90 * 60;
+              studySessionsApi
+                .updateSession(activeSessionId, {
+                  status: 'completed',
+                  actual_duration_secs: totalSecs,
+                })
+                .then(() => {
+                  setActiveSessionId(null);
+                  refreshBackendData();
+                })
+                .catch(() => {});
+            }
             return 0;
           }
           return prev - 1;
@@ -437,11 +496,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [timerRunning, timerSeconds]);
+  }, [timerRunning, timerSeconds, activeSessionId, timerMode]);
 
-  const toggleTimer = () => setTimerRunning((prev) => !prev);
+  const toggleTimer = async () => {
+    const nextRunning = !timerRunning;
+    setTimerRunning(nextRunning);
+
+    const initialSecs = timerMode === 'pomodoro' ? 25 * 60 : timerMode === 'deep_work' ? 50 * 60 : 90 * 60;
+    const elapsed = Math.max(0, initialSecs - timerSeconds);
+
+    if (nextRunning) {
+      if (!activeSessionId) {
+        try {
+          const sess = await studySessionsApi.startSession({
+            session_type: timerMode,
+            planned_duration_mins: timerMode === 'pomodoro' ? 25 : timerMode === 'deep_work' ? 50 : 90,
+            course_id: activeCourseId,
+            goal: 'Deep Focus Sprint',
+          });
+          if (sess?.id) setActiveSessionId(sess.id);
+        } catch (e) {
+          console.log('Started session locally:', e);
+        }
+      } else {
+        try {
+          await studySessionsApi.updateSession(activeSessionId, { status: 'running' });
+        } catch {}
+      }
+    } else {
+      if (activeSessionId) {
+        try {
+          await studySessionsApi.updateSession(activeSessionId, {
+            status: 'paused',
+            actual_duration_secs: elapsed,
+          });
+        } catch {}
+      }
+    }
+  };
 
   const resetTimer = () => {
+    if (activeSessionId) {
+      const initialSecs = timerMode === 'pomodoro' ? 25 * 60 : timerMode === 'deep_work' ? 50 * 60 : 90 * 60;
+      const elapsed = Math.max(0, initialSecs - timerSeconds);
+      const finalStatus = elapsed >= 60 ? 'completed' : 'abandoned';
+      studySessionsApi
+        .updateSession(activeSessionId, {
+          status: finalStatus,
+          actual_duration_secs: elapsed,
+        })
+        .then(() => {
+          setActiveSessionId(null);
+          refreshBackendData();
+        })
+        .catch(() => {});
+    }
     setTimerRunning(false);
     if (timerMode === 'pomodoro') setTimerSeconds(25 * 60);
     else if (timerMode === 'deep_work') setTimerSeconds(50 * 60);
@@ -637,6 +746,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSyncing,
         syncError,
         refreshBackendData,
+        isEphemeralStorage,
+        isBannerDismissed,
+        setIsBannerDismissed,
+        activeSessionId,
         timerSeconds,
         timerRunning,
         timerMode,

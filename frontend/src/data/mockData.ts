@@ -7,13 +7,13 @@ export const initialUser: UserProfile = {
   cohort: "Class of '28",
   term: 'TERM 2',
   week: 'WEEK 08',
-  streakDays: 42,
-  streakTopPercent: 1,
-  deepWorkHoursToday: 2.5,
+  streakDays: 0,
+  streakTopPercent: 0,
+  deepWorkHoursToday: 0.0,
   deepWorkTargetToday: 3.0,
-  weeklyXP: 1840,
-  retainedNodes: 14,
-  level: 16,
+  weeklyXP: 0,
+  retainedNodes: 0,
+  level: 1,
 };
 
 export const coursesData: Course[] = [
@@ -249,7 +249,7 @@ SQ8 normalizes dimensions into [-128, 127], shrinking memory by 75%. Product Qua
       moduleTitle: 'Module 02 • Inference Latency & KV Paging',
       duration: '21:10',
       completed: true,
-      videoUrl: 'https://www.youtube.com/watch?v=9-LPEtJ_1rU',
+      videoUrl: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
       keyTakeaways: [
         'Speculative decoding pairs a small draft model with a large target model to verify tokens in parallel batches.',
         'PagedAttention solves KV cache memory fragmentation by allocating non-contiguous virtual memory blocks like OS virtual paging.'
@@ -277,7 +277,7 @@ Memory bandwidth is the primary bottleneck in autoregressive token generation. A
       moduleTitle: 'Module 04 • Neural Reranking at P99 Constraints',
       duration: '16:30',
       completed: false,
-      videoUrl: 'https://www.youtube.com/watch?v=1qhT33g3K0g',
+      videoUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',
       keyTakeaways: [
         'Cross-encoders perform full bidirectional self-attention between query and document text.',
         'FlashRank distills heavy Cross-Encoders into compact ONNX models executing in under 8ms on CPU.'
@@ -307,7 +307,7 @@ First-stage bi-encoders produce candidates in under 15ms. Second-stage cross-enc
       moduleTitle: 'Module 01 • Monetary Frameworks & Inflation Targets',
       duration: '28:15',
       completed: true,
-      videoUrl: 'https://www.youtube.com/watch?v=W3a49P85zfc',
+      videoUrl: 'https://www.youtube.com/watch?v=_SpIaGTq0u8',
       keyTakeaways: [
         'The Taylor Rule prescribes policy rates based on output gap and inflation gap: i = r* + π + 0.5(π - π*) + 0.5(y - y*).',
         'Emerging market central banks must adjust for exchange rate shocks and capital outflow pressures.'
@@ -335,7 +335,7 @@ The Flexible Inflation Targeting Framework (FITF) balances the 4% CPI midpoint w
       moduleTitle: 'Module 02 • Operational Liquidity Corridors',
       duration: '22:40',
       completed: false,
-      videoUrl: 'https://www.youtube.com/watch?v=e_H8n1xL_g8',
+      videoUrl: 'https://www.youtube.com/watch?v=_SpIaGTq0u8',
       keyTakeaways: [
         'SDF acts as the uncollateralized floor of the LAF liquidity corridor.',
         'Marginal Standing Facility (MSF) acts as the penalized penal ceiling for emergency overnight borrowing.'
@@ -365,7 +365,7 @@ The RBI operates a symmetric corridor with Repo at the center, SDF at the floor 
       moduleTitle: 'Module 01 • Discounted Cash Flow Mechanics',
       duration: '31:20',
       completed: false,
-      videoUrl: 'https://www.youtube.com/watch?v=p4vW7t2oMOU',
+      videoUrl: 'https://www.youtube.com/watch?v=znmQ7oMiQrM',
       keyTakeaways: [
         'Terminal Value typically constitutes 60-85% of total enterprise value in DCF models.',
         'Perpetual Growth rate g must strictly remain below long-term nominal GDP growth.'
@@ -396,7 +396,7 @@ Exit Multiple Method: TV = EBITDA_{n} * Target Multiple.`,
       moduleTitle: 'Module 01 • Healthcare Marketplace Topology',
       duration: '27:10',
       completed: false,
-      videoUrl: 'https://www.youtube.com/watch?v=Xh0wG7GzD4s',
+      videoUrl: 'https://www.youtube.com/watch?v=5nAeyqNuZYU',
       keyTakeaways: [
         'Healthcare transit mandates 99.8% on-time pickup SLAs for chemotherapy and dialysis appointments.',
         'Dual-dispatch algorithms pre-assign backup drivers 15 minutes before scheduled departure.'
@@ -426,7 +426,7 @@ Standard rideshare drivers can cancel freely. NEMT healthcare rides enforce auto
       moduleTitle: 'Module 01 • Distributed Stream Processing',
       duration: '29:45',
       completed: true,
-      videoUrl: 'https://www.youtube.com/watch?v=B7bV31xW88s',
+      videoUrl: 'https://www.youtube.com/watch?v=Ch5VhJzaoaI',
       keyTakeaways: [
         'Asynchronous Barrier Snapshotting injects lightweight checkpoint barriers into stream flows without pausing execution.',
         'RocksDB state backend maintains out-of-core state on disk while caching hot keys in off-heap block memory.'
@@ -532,7 +532,7 @@ export const libraryItemsData: LibraryItem[] = [
     fullNotes: `# Central Bank Operations Summary\n- The policy corridor operates between SDF (floor) and MSF (ceiling).\n- Liquidity absorption via overnight reverse repo vs fine-tuning variable rate reverse repo (VRRR).\n- Real interest rate differentials and capital flow volatility in emerging markets.`,
     citation: 'Patel, R. (2025). Advanced Monetary Policy Transmission. National Banking Institute.',
     bookmarked: false,
-    fileUrl: 'https://www.youtube.com/watch?v=1qhT33g3K0g',
+    fileUrl: 'https://www.youtube.com/watch?v=_SpIaGTq0u8',
     fileType: 'video/mp4',
     fileSize: '54.6 MB',
   },
@@ -673,7 +673,7 @@ export const mockExamData: MockExam = {
       name: 'Section A: Quantitative Finance & Macroeconomics',
       questions: [
         {
-          id: 1,
+          id: 'q-mock-1',
           text: 'Under the Flexible Inflation Targeting Framework (FITF) in India, what is the mandated consumer price index (CPI) headline target and tolerance band?',
           options: [
             '3.0% with a tolerance band of ± 1.5%',
@@ -687,7 +687,7 @@ export const mockExamData: MockExam = {
           explanation: 'The RBI Monetary Policy Framework mandates a 4% CPI inflation target with an upper tolerance limit of 6% and a lower tolerance limit of 2%. Three consecutive quarters outside this band constitutes a policy failure requiring an explanatory report to Parliament.',
         },
         {
-          id: 2,
+          id: 'q-mock-2',
           text: 'In the Black-Scholes framework, what does the option Greek "Theta" (\\Theta) quantify?',
           options: [
             'Sensitivity of option price to changes in implied volatility.',
@@ -701,7 +701,7 @@ export const mockExamData: MockExam = {
           explanation: 'Theta measures the negative rate of change of an option\'s price over time (∂V/∂t). For long vanilla option holders, Theta is strictly negative, reflecting eroding extrinsic time value.',
         },
         {
-          id: 3,
+          id: 'q-mock-3',
           text: 'Consider an enterprise RAG pipeline experiencing high p99 latency during hybrid search. Which architectural intervention delivers the highest reduction in latency without degrading Recall@10?',
           options: [
             'Replace all vector indexes with SQLite linear string regex scanning.',
@@ -715,7 +715,7 @@ export const mockExamData: MockExam = {
           explanation: 'A 2-stage cascaded pipeline maintains high recall by casting a wide net with lightweight lexical + ANN search, then applying the computationally expensive neural reranker only to the filtered candidate pool.',
         },
         {
-          id: 4,
+          id: 'q-mock-4',
           text: 'When computing Enterprise Value (EV) from Market Capitalization, which calculation correctly accounts for net debt and minority interest?',
           options: [
             'EV = Market Cap + Total Debt - Cash & Cash Equivalents + Minority Interest + Preferred Stock',
@@ -729,7 +729,7 @@ export const mockExamData: MockExam = {
           explanation: 'Enterprise Value represents the theoretical takeover cost of the core operating business. Cash is subtracted because a buyer can immediately pocket it; debt and minority interest are added because the acquirer must satisfy them.',
         },
         {
-          id: 5,
+          id: 'q-mock-5',
           text: 'In distributed event processing with Apache Flink, what mechanism guarantees "Exactly-Once" state consistency across node failures?',
           options: [
             'Round-robin TCP packet retransmissions.',

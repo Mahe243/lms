@@ -1,11 +1,29 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User
 from backend.schemas import UserOut, UserUpdate
+from backend.config import settings, is_serverless
 
 router = APIRouter(prefix="/api/user", tags=["User & Settings"])
+
+def verify_destructive_access(x_learnova_token: Optional[str] = Header(None, alias="X-Learnova-Token")):
+    """
+    Enforces access protection on destructive routes (deleting courses/resources, restoring backups, cleaning demo data).
+    Required when REQUIRE_AUTH is true or when running in serverless preview/production.
+    """
+    if not (settings.REQUIRE_AUTH or is_serverless):
+        return True
+
+    expected = settings.LEARNOVA_ACCESS_TOKEN
+    if not x_learnova_token or x_learnova_token.strip() != expected:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Destructive operations require a valid X-Learnova-Token."
+        )
+    return True
 
 def get_or_create_user(db: Session) -> User:
     u = db.query(User).first()
@@ -16,7 +34,7 @@ def get_or_create_user(db: Session) -> User:
             preferences=json.dumps({
                 "dark_mode": False,
                 "ai_provider": "gemini",
-                "ai_model": "gemini-1.5-flash",
+                "ai_model": "gemini-2.5-flash",
                 "ai_api_key": "",
                 "preferred_explanation_language": "English",
                 "preferred_depth": "balanced",

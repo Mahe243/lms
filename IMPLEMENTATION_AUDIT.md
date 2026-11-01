@@ -135,3 +135,54 @@ flowchart TD
 5. **ClassroomView Modularization**: Decompose the 1,267-line monolith into dedicated subcomponents.
 6. **Real Analytics**: Connect Dashboard and Goals progress directly to `/api/activity/analytics`.
 7. **Verification**: Full pytest test suite and zero-error Vite production build.
+
+---
+
+## 9. Comprehensive Audit Remediation Summary (P0 – P3)
+
+All prioritized audit findings have been resolved and verified across the codebase:
+
+### P0 — Deployment and Persistence
+1. **Canonical Single-Project Vercel Setup**:
+   - Neutralized and deleted stale `frontend/vercel.json` (which previously routed `/api/*` to an obsolete external deployment `lms-xg9e`).
+   - Removed duplicate root `app.py` so Vercel treats `./` as a single unified project without prompting to import `frontend` or `app` separately.
+   - Root `vercel.json` serves the SPA from `frontend/dist` with `/(.*)` $\rightarrow$ `/index.html` fallback and routes `/api/*`, `/health`, `/docs`, `/openapi.json`, and `/uploads/*` directly to `api/index.py`.
+2. **Lifespan-Independent Lazy Database Initialization**:
+   - Added thread-safe `ensure_db_initialized()` in `backend/database.py` with double-checked locking (`_db_init_lock`).
+   - Integrated into `get_db()` dependency so database tables and seed data are created lazily on the first request if the serverless runtime bypasses ASGI lifespan hooks. Verified with `backend/tests/test_no_lifespan.py`.
+3. **Storage Transparency & Banner Alert**:
+   - Backend `GET /health` surfaces `"persistence": "persistent" | "ephemeral"` based on `DATABASE_URL` presence.
+   - Frontend displays a non-blocking amber warning banner advising configuration of hosted PostgreSQL when running on ephemeral storage.
+   - Clear upload disclaimer added to `UploadModal.tsx`.
+
+### P1 — Confirmed Functional Bugs
+4. **Practice Arena 422 Submission & Bank Integration**:
+   - Fixed `QuizSubmitPayload` in `frontend/src/api/quizzesApi.ts` to match `backend/schemas.py` (`quiz_title`, `responses`, `course_id`, `bank_id`, `mode`, `time_spent_secs`).
+   - Seeded RBI Grade B question bank in `backend/services/demo_data.py` with static IDs `q-mock-1` through `q-mock-5`.
+   - Practice Arena loads live questions from `/api/quizzes/questions` with graceful fallback to local data, computes cohort percentiles dynamically, and displays retry notices on failure. Fixed `datetime` JSON serialization in `backend/routers/quizzes.py`.
+5. **Practice Arena Timer Refactoring**:
+   - Refactored interval countdown in `PracticeArenaView.tsx` to strictly decrement without calling `handleFinishExam` inside updater. Added guarded `useEffect` with `hasSubmittedRef` to prevent duplicate submissions.
+6. **AI Tutor Model Retirement & Error Mapping**:
+   - Updated default model to `gemini-2.5-flash` in `backend/config.py`.
+   - Added `map_ai_api_error` in `backend/services/ai_service.py` to map 404 (model retired), 401/403 (invalid key), and 429 (quota exceeded) to user-friendly messages.
+7. **Study Room Focus Session Synchronization**:
+   - Tied `StudyRoomView.tsx` and `Header.tsx` timer state together via `AppContext.tsx`.
+   - Connected `studySessionsApi.startSession` and `updateSession` to persist genuine elapsed seconds to the database and restore active sessions on mount.
+
+### P2 — Fabricated Metrics & Seed Control
+8. **Genuine Zero Baseline Metrics**:
+   - Reset mock defaults in `mockData.ts` to `streakDays: 0`, `weeklyXP: 0`, `retainedNodes: 0`, `deepWorkHoursToday: 0.0`.
+   - Updated `AppContext.tsx` with nullish coalescing (`??`) so real zeroes are respected.
+   - Replaced static strings with dynamic progress computations.
+9. **Controlled Activity Seeding**:
+   - Wrapped synthetic demo study sessions in `if settings.SEED_DEMO_ACTIVITY:` (defaults to `False`) so new users start with clean, authentic activity logs.
+
+### P3 — Security, Lint & Cleanliness
+10. **Destructive Endpoint Protection**:
+    - Added `verify_destructive_access` in `backend/routers/auth.py` protecting `/api/resources/{id}`, `/api/courses/{id}`, `/api/backup/clean-demo`, and `/api/backup/restore` with Bearer token authentication.
+11. **CORS Hardening**:
+    - Removed wildcard `allow_origin_regex` in `backend/main.py`.
+12. **Frontend Linter Compliance**:
+    - Ran `npx oxlint` across all frontend files and resolved all component lint errors and warnings.
+13. **YouTube Video URL Overhaul**:
+    - Replaced all dead/copyright-blocked YouTube links (`-xmOlNUA0lQ`, `e_H8n1xL_g8`, `9-LPEtJ_1rU`, etc.) with embeddable educational video resources from Stanford, Damodaran, 3Blue1Brown, and Karpathy. Verified live with YouTube oEmbed API.

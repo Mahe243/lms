@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 from sqlalchemy.orm import Session
+from backend.config import settings
 from backend.models import (
     User, Course, Module, Topic, Subtopic, Note, NoteVersion, Resource, ResourceChunk,
     Comment, FlashcardDeck, Flashcard, FlashcardReview, QuestionBank, Question,
@@ -183,7 +184,7 @@ SQ8 normalizes dimensions into [-128, 127], shrinking memory by 75%. Product Qua
         status="in_progress",
         understanding_level="comfortable",
         order_index=3,
-        video_url="https://www.youtube.com/watch?v=9-LPEtJ_1rU",
+        video_url="https://www.youtube.com/watch?v=wjZofJX0v4M",
         markdown_content="""### Speculative Decoding Mechanics
 
 LLM inference is memory-bandwidth bound during autoregressive generation. Speculative decoding uses a lightweight draft model (e.g. 1B parameter) to hypothesize K tokens in parallel, which the primary model verifies in a single forward pass.""",
@@ -243,7 +244,7 @@ LLM inference is memory-bandwidth bound during autoregressive generation. Specul
         status="completed",
         understanding_level="confident",
         order_index=1,
-        video_url="https://www.youtube.com/watch?v=1qhT33g3K0g",
+        video_url="https://www.youtube.com/watch?v=_SpIaGTq0u8",
         markdown_content="""### The Taylor Rule Equation
 
 $$i_t = r^* + \\pi_t + 0.5(\\pi_t - \\pi^*) + 0.5(y_t - \\bar{y}_t)$$
@@ -303,7 +304,7 @@ In emerging market central banks, the rule is modified to incorporate real excha
         status="in_progress",
         understanding_level="comfortable",
         order_index=1,
-        video_url="https://www.youtube.com/watch?v=e_H8n1xL_g8",
+        video_url="https://www.youtube.com/watch?v=znmQ7oMiQrM",
         markdown_content="""### Terminal Value Formulation
 
 $$\\text{Terminal Value}_N = \\frac{\\text{UFCF}_{N+1}}{\\text{WACC} - g}$$
@@ -363,7 +364,7 @@ Long-term perpetual growth rate $g$ must never exceed nominal GDP growth of the 
         status="not_started",
         understanding_level="unfamiliar",
         order_index=1,
-        video_url="https://www.youtube.com/watch?v=Xh0wG7GzD4s",
+        video_url="https://www.youtube.com/watch?v=5nAeyqNuZYU",
         markdown_content="""### Product Requirements Document: NEMT Dual-Dispatch Platform
 
 Critical healthcare logistics differ fundamentally from standard rideshare:
@@ -423,7 +424,7 @@ Critical healthcare logistics differ fundamentally from standard rideshare:
         status="completed",
         understanding_level="confident",
         order_index=1,
-        video_url="https://www.youtube.com/watch?v=B7bV31xW88s",
+        video_url="https://www.youtube.com/watch?v=Ch5VhJzaoaI",
         markdown_content="""### Flink State Backend Architecture
 
 Stateful operators retain intermediate aggregations in RocksDB LSM-trees offloaded from Java heap memory. Checkpoint barriers flow alongside event streams to trigger asynchronous non-blocking state snapshots.""",
@@ -576,78 +577,140 @@ Stateful operators retain intermediate aggregations in RocksDB LSM-trees offload
 
     # 5. Question Bank for Practice Arena
     q_bank = QuestionBank(
+        id="bank-rbi-grade-b",
         course_id=c2.id,
         name="RBI Grade B Phase II — Economic & Social Issues Diagnostic Mock",
         description="Curated high-pressure mock exam questions testing monetary economics and financial markets.",
         is_demo=True
     )
-    db.add(q_bank)
+    db.merge(q_bank)
     db.flush()
 
     q1 = Question(
+        id="q-mock-1",
         bank_id=q_bank.id,
         course_id=c2.id,
         topic_id=t2_1.id,
         question_type="multiple_choice",
-        question_text="Under the Flexible Inflation Targeting (FIT) framework in India, what is the statutory target for Consumer Price Index (CPI) inflation?",
+        question_text="Under the Flexible Inflation Targeting Framework (FITF) in India, what is the mandated consumer price index (CPI) headline target and tolerance band?",
         options=json.dumps([
-            "4% with a tolerance band of +/- 2% (2% to 6%)",
-            "3% with a tolerance band of +/- 1% (2% to 4%)",
-            "5% with a tolerance band of +/- 2.5%",
-            "Fixed 4% without tolerance band"
+            "3.0% with a tolerance band of ± 1.5%",
+            "4.0% with a tolerance band of ± 2.0% (2% to 6%)",
+            "5.0% with a tolerance band of ± 1.0%",
+            "4.5% with a fixed corridor of ± 0.5%"
         ]),
-        correct_answer="0",
-        explanation="Section 45ZA of the RBI Act specifies 4% CPI inflation with a +/- 2% tolerance band (2% floor, 6% ceiling).",
-        difficulty="medium",
+        correct_answer="1",
+        explanation="The RBI Monetary Policy Framework mandates a 4% CPI inflation target with an upper tolerance limit of 6% and a lower tolerance limit of 2%. Three consecutive quarters outside this band constitutes a policy failure requiring an explanatory report to Parliament.",
+        difficulty="easy",
         is_demo=True
     )
     q2 = Question(
+        id="q-mock-2",
         bank_id=q_bank.id,
-        course_id=c2.id,
-        topic_id=t2_1.id,
+        course_id=c3.id,
+        topic_id=t3_1.id,
         question_type="multiple_choice",
-        question_text="Which facility serves as the uncollateralized floor rate of the Liquidity Adjustment Facility (LAF) corridor introduced by the RBI in 2022?",
+        question_text='In the Black-Scholes framework, what does the option Greek "Theta" (\\Theta) quantify?',
         options=json.dumps([
-            "Marginal Standing Facility (MSF)",
-            "Standing Deposit Facility (SDF)",
-            "Overnight Reverse Repo Rate",
-            "Variable Rate Repo (VRR)"
+            "Sensitivity of option price to changes in implied volatility.",
+            "Rate of decay in option value as time elapses towards expiration (time decay), all else equal.",
+            "Rate of change of delta with respect to the underlying spot price.",
+            "Sensitivity to the risk-free rate of interest."
         ]),
         correct_answer="1",
-        explanation="The Standing Deposit Facility (SDF) was instituted in April 2022 at 25 bps below the policy repo rate as the floor without requiring government securities collateral.",
-        difficulty="hard",
+        explanation="Theta measures the negative rate of change of an option's price over time (∂V/∂t). For long vanilla option holders, Theta is strictly negative, reflecting eroding extrinsic time value.",
+        difficulty="easy",
         is_demo=True
     )
-    db.add_all([q1, q2])
-    db.flush()
-
-    # 6. Study Sessions (Real Focus Duration)
-    s1 = StudySession(
-        session_type="pomodoro",
+    q3 = Question(
+        id="q-mock-3",
+        bank_id=q_bank.id,
         course_id=c1.id,
         topic_id=t1_1.id,
-        planned_duration_mins=25,
-        actual_duration_secs=1500,
-        goal="RAG Hybrid Search Architecture",
-        session_notes="Deep dive into reciprocal rank fusion k-factor calibration.",
-        status="completed",
-        is_demo=True,
-        created_at=yesterday
+        question_type="multiple_choice",
+        question_text="Consider an enterprise RAG pipeline experiencing high p99 latency during hybrid search. Which architectural intervention delivers the highest reduction in latency without degrading Recall@10?",
+        options=json.dumps([
+            "Replace all vector indexes with SQLite linear string regex scanning.",
+            "Implement 2-stage retrieval: Fetch Top-100 candidates via ANN vector search + Tantivy BM25, followed by a quantized cross-encoder reranker on only Top-30.",
+            "Increase dense embedding dimensionality from 1536 to 8192 dims.",
+            "Disable lexical indexing and double the LLM temperature parameter."
+        ]),
+        correct_answer="1",
+        explanation="A 2-stage cascaded pipeline maintains high recall by casting a wide net with lightweight lexical + ANN search, then applying the computationally expensive neural reranker only to the filtered candidate pool.",
+        difficulty="moderate",
+        is_demo=True
     )
-    s2 = StudySession(
-        session_type="deep_work",
-        course_id=c2.id,
-        topic_id=t2_1.id,
-        planned_duration_mins=50,
-        actual_duration_secs=3000,
-        goal="Taylor Rule & Macroeconomics",
-        session_notes="Derivation of output gap and flexible inflation targeting.",
-        status="completed",
-        is_demo=True,
-        created_at=two_days_ago
+    q4 = Question(
+        id="q-mock-4",
+        bank_id=q_bank.id,
+        course_id=c3.id,
+        topic_id=t3_1.id,
+        question_type="multiple_choice",
+        question_text="When computing Enterprise Value (EV) from Market Capitalization, which calculation correctly accounts for net debt and minority interest?",
+        options=json.dumps([
+            "EV = Market Cap + Total Debt - Cash & Cash Equivalents + Minority Interest + Preferred Stock",
+            "EV = Market Cap - Total Debt + Cash & Cash Equivalents",
+            "EV = Net Income + Operating Cash Flow * WACC",
+            "EV = Total Assets - Total Liabilities + EBITDA"
+        ]),
+        correct_answer="0",
+        explanation="Enterprise Value represents the theoretical takeover cost of the core operating business. Cash is subtracted because a buyer can immediately pocket it; debt and minority interest are added because the acquirer must satisfy them.",
+        difficulty="moderate",
+        is_demo=True
     )
-    db.add_all([s1, s2])
+    q5 = Question(
+        id="q-mock-5",
+        bank_id=q_bank.id,
+        course_id=c5.id,
+        topic_id=t5_1.id,
+        question_type="multiple_choice",
+        question_text='In distributed event processing with Apache Flink, what mechanism guarantees "Exactly-Once" state consistency across node failures?',
+        options=json.dumps([
+            "Round-robin TCP packet retransmissions.",
+            "Asynchronous Barrier Snapshotting (Chandy-Lamport variant) aligned with checkpointed state backends.",
+            "Static CPU pinning on master nodes.",
+            "Writing all stream events directly to hardcoded CSV files."
+        ]),
+        correct_answer="1",
+        explanation="Flink injects checkpoint barriers into the dataflow stream without pausing processing. Operators take lightweight asynchronous snapshots of their state when barriers arrive, enabling precise deterministic rollback upon failure.",
+        difficulty="challenging",
+        is_demo=True
+    )
+    db.merge(q1)
+    db.merge(q2)
+    db.merge(q3)
+    db.merge(q4)
+    db.merge(q5)
     db.flush()
+
+    # 6. Study Sessions (Real Focus Duration - seeded only when SEED_DEMO_ACTIVITY=true)
+    if settings.SEED_DEMO_ACTIVITY:
+        s1 = StudySession(
+            session_type="pomodoro",
+            course_id=c1.id,
+            topic_id=t1_1.id,
+            planned_duration_mins=25,
+            actual_duration_secs=1500,
+            goal="RAG Hybrid Search Architecture",
+            session_notes="Deep dive into reciprocal rank fusion k-factor calibration.",
+            status="completed",
+            is_demo=True,
+            created_at=yesterday
+        )
+        s2 = StudySession(
+            session_type="deep_work",
+            course_id=c2.id,
+            topic_id=t2_1.id,
+            planned_duration_mins=50,
+            actual_duration_secs=3000,
+            goal="Taylor Rule & Macroeconomics",
+            session_notes="Derivation of output gap and flexible inflation targeting.",
+            status="completed",
+            is_demo=True,
+            created_at=two_days_ago
+        )
+        db.add_all([s1, s2])
+        db.flush()
 
     # 7. Goals
     g1 = Goal(
