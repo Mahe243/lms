@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import type { LibraryItem, Flashcard } from '../../types';
 
 export const LibraryView: React.FC = () => {
-  const { libraryItems, toggleBookmark, flashcards, reviewFlashcard } = useApp();
+  const { libraryItems, toggleBookmark, flashcards, reviewFlashcard, setIsUploadModalOpen, setActiveVideoUrl, setCurrentPath } = useApp();
   const [activeTab, setActiveTab] = useState<'vault' | 'srs'>('vault');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,7 +13,7 @@ export const LibraryView: React.FC = () => {
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const categories = ['All', 'Book', 'Research Paper', 'Lecture Note', 'Cheat Sheet'];
+  const categories = ['All', 'Book', 'Research Paper', 'Video Lecture', 'Lecture Note', 'Cheat Sheet'];
 
   const filteredItems = libraryItems.filter((item) => {
     const matchesCat = selectedCategory === 'All' || item.category === selectedCategory;
@@ -51,26 +51,37 @@ export const LibraryView: React.FC = () => {
           </p>
         </div>
 
-        {/* View Switcher: Vault vs Spaced Repetition Decks */}
-        <div className="flex items-center gap-1.5 p-1 bg-surface-container-low dark:bg-dark-surface-2 rounded-xl border border-surface-variant/40">
+        {/* Upload & View Switcher */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setActiveTab('vault')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'vault' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
-            }`}
+            onClick={() => setIsUploadModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">local_library</span>
-            <span>Master Repository ({libraryItems.length})</span>
+            <span className="material-symbols-outlined text-[16px]">upload_file</span>
+            <span>Upload Resource</span>
           </button>
-          <button
-            onClick={() => setActiveTab('srs')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'srs' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">style</span>
-            <span>Spaced Repetition Decks ({flashcards.length})</span>
-          </button>
+
+          {/* View Switcher: Vault vs Spaced Repetition Decks */}
+          <div className="flex items-center gap-1.5 p-1 bg-surface-container-low dark:bg-dark-surface-2 rounded-xl border border-surface-variant/40">
+            <button
+              onClick={() => setActiveTab('vault')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'vault' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">local_library</span>
+              <span>Vault ({libraryItems.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('srs')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'srs' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">style</span>
+              <span>SRS Decks ({flashcards.length})</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -132,7 +143,14 @@ export const LibraryView: React.FC = () => {
                   </div>
 
                   <h3 
-                    onClick={() => setActiveReaderItem(item)}
+                    onClick={() => {
+                      if (item.category === 'Video Lecture' || (item.fileUrl && (item.fileUrl.endsWith('.mp4') || item.fileUrl.includes('youtube.com') || item.fileType?.startsWith('video/')))) {
+                        if (item.fileUrl) setActiveVideoUrl(item.fileUrl);
+                        setCurrentPath('classroom');
+                      } else {
+                        setActiveReaderItem(item);
+                      }
+                    }}
                     className="font-headline-sm text-base font-bold font-serif text-on-surface dark:text-dark-text group-hover:text-primary transition-colors cursor-pointer line-clamp-2"
                   >
                     {item.title}
@@ -156,16 +174,37 @@ export const LibraryView: React.FC = () => {
                 </div>
 
                 <div className="pt-3 mt-3 border-t border-surface-variant/30 dark:border-dark-border flex items-center justify-between text-xs">
-                  <span className="font-code-sm text-on-surface-variant text-[11px]">
-                    {item.readTime}
-                  </span>
-                  <button
-                    onClick={() => setActiveReaderItem(item)}
-                    className="font-bold text-primary dark:text-inverse-primary flex items-center gap-0.5 group-hover:translate-x-1 transition-transform cursor-pointer"
-                  >
-                    <span>Read Notes</span>
-                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 font-code-sm text-on-surface-variant text-[11px]">
+                    <span>{item.readTime}</span>
+                    {item.fileSize && (
+                      <span className="text-primary font-semibold">({item.fileSize})</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {item.category === 'Video Lecture' || (item.fileUrl && (item.fileUrl.endsWith('.mp4') || item.fileUrl.includes('youtube.com') || item.fileType?.startsWith('video/'))) ? (
+                      <button
+                        onClick={() => {
+                          if (item.fileUrl) {
+                            setActiveVideoUrl(item.fileUrl);
+                          }
+                          setCurrentPath('classroom');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-primary text-white font-bold text-xs flex items-center gap-1 cursor-pointer hover:bg-primary-container transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">play_circle</span>
+                        <span>Watch Video</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setActiveReaderItem(item)}
+                        className="font-bold text-primary dark:text-inverse-primary flex items-center gap-0.5 group-hover:translate-x-1 transition-transform cursor-pointer"
+                      >
+                        <span>Read Notes</span>
+                        <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -293,7 +332,22 @@ export const LibraryView: React.FC = () => {
             </div>
 
             <div className="p-4 bg-surface-container-low dark:bg-dark-surface-2 border-t border-surface-variant/40 flex items-center justify-between text-xs">
-              <span className="font-code-sm text-on-surface-variant">Progress: {activeReaderItem.progress}% completed</span>
+              <div className="flex items-center gap-3">
+                <span className="font-code-sm text-on-surface-variant">Progress: {activeReaderItem.progress}% completed</span>
+                {(activeReaderItem.category === 'Video Lecture' || (activeReaderItem.fileUrl && (activeReaderItem.fileUrl.endsWith('.mp4') || activeReaderItem.fileUrl.includes('youtube.com')))) && (
+                  <button
+                    onClick={() => {
+                      if (activeReaderItem.fileUrl) setActiveVideoUrl(activeReaderItem.fileUrl);
+                      setActiveReaderItem(null);
+                      setCurrentPath('classroom');
+                    }}
+                    className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">play_circle</span>
+                    <span>Watch in Classroom</span>
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setActiveReaderItem(null)}
                 className="px-5 py-2 rounded-xl bg-primary text-white font-bold cursor-pointer"

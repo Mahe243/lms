@@ -13,6 +13,7 @@ export const Header: React.FC = () => {
     theme,
     toggleTheme,
     setIsFastRecallOpen,
+    setIsUploadModalOpen,
   } = useApp();
 
   const formatTimer = (secs: number) => {
@@ -83,6 +84,16 @@ export const Header: React.FC = () => {
             {timerRunning ? 'Pause' : 'Focus'}
           </button>
         </div>
+
+        {/* Quick Upload Button */}
+        <button
+          onClick={() => setIsUploadModalOpen(true)}
+          title="Upload Learning Artifact or Video"
+          className="flex items-center gap-1 px-3 py-1 bg-primary hover:bg-primary-container text-white transition-all rounded-lg font-label-md text-xs font-bold shadow-sm cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[16px]">upload_file</span>
+          <span className="hidden sm:inline">Upload</span>
+        </button>
 
         {/* Fast Recall Button */}
         <button

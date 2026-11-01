@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { NavigationPath, UserProfile, Course, Lesson, LibraryItem, Flashcard, FastRecallEntry } from '../types';
-import { initialUser, coursesData, currentClassroomLesson, libraryItemsData, flashcardsData } from '../data/mockData';
+import { initialUser, coursesData, currentClassroomLesson, libraryItemsData, flashcardsData, courseLessonsMap } from '../data/mockData';
 import { soundscapeEngine } from '../utils/soundscapes';
 import type { SoundscapeType } from '../utils/soundscapes';
 
@@ -13,6 +13,12 @@ interface AppContextType {
   activeCourseId: string;
   setActiveCourseId: (id: string) => void;
   activeLesson: Lesson;
+  setActiveLesson: (lesson: Lesson) => void;
+  availableLessons: Lesson[];
+  selectCourse: (courseId: string) => void;
+  selectLesson: (lesson: Lesson) => void;
+  activeVideoUrl: string;
+  setActiveVideoUrl: (url: string) => void;
   markLessonComplete: (lessonId: string) => void;
   
   // Timer State
@@ -36,6 +42,7 @@ interface AppContextType {
   // Library & Flashcards
   libraryItems: LibraryItem[];
   toggleBookmark: (id: string) => void;
+  addLibraryItem: (item: Partial<LibraryItem>) => void;
   flashcards: Flashcard[];
   reviewFlashcard: (id: string, rating: 'again' | 'hard' | 'good' | 'easy') => void;
 
@@ -44,6 +51,8 @@ interface AppContextType {
   setIsCommandPaletteOpen: (open: boolean) => void;
   isFastRecallOpen: boolean;
   setIsFastRecallOpen: (open: boolean) => void;
+  isUploadModalOpen: boolean;
+  setIsUploadModalOpen: (open: boolean) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   geminiApiKey: string;
@@ -71,6 +80,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [courses] = useState<Course[]>(coursesData);
   const [activeCourseId, setActiveCourseId] = useState<string>('ai-pm-llm');
   const [activeLesson, setActiveLesson] = useState<Lesson>(currentClassroomLesson);
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string>(currentClassroomLesson.videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  const availableLessons = courseLessonsMap[activeCourseId] || [currentClassroomLesson];
+
+  const selectCourse = (courseId: string) => {
+    setActiveCourseId(courseId);
+    const lessons = courseLessonsMap[courseId] || [currentClassroomLesson];
+    const first = lessons[0];
+    setActiveLesson(first);
+    if (first.videoUrl) {
+      setActiveVideoUrl(first.videoUrl);
+    }
+    setCurrentPath('classroom');
+  };
+
+  const selectLesson = (lesson: Lesson) => {
+    setActiveLesson(lesson);
+    if (lesson.videoUrl) {
+      setActiveVideoUrl(lesson.videoUrl);
+    }
+  };
 
   // Focus Timer
   const [timerSeconds, setTimerSeconds] = useState<number>(25 * 60);
@@ -253,6 +284,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateUser({ weeklyXP: user.weeklyXP + 25 });
   };
 
+  const addLibraryItem = (newItem: Partial<LibraryItem>) => {
+    const fullItem: LibraryItem = {
+      id: `lib-${Date.now()}`,
+      title: newItem.title || 'Untitled Document',
+      author: newItem.author || user.name,
+      year: newItem.year || '2026',
+      category: newItem.category || 'Lecture Note',
+      tags: newItem.tags && newItem.tags.length > 0 ? newItem.tags : ['Study Material'],
+      readTime: newItem.readTime || '15m',
+      progress: 0,
+      rating: 5,
+      summary: newItem.summary || 'Uploaded learning artifact saved in Second Brain vault.',
+      citation: newItem.citation || `${newItem.author || user.name} (2026). ${newItem.title}. Personal LMS Repository.`,
+      bookmarked: true,
+      fileUrl: newItem.fileUrl,
+      fileType: newItem.fileType,
+      fileSize: newItem.fileSize,
+      fullNotes: newItem.fullNotes || `# ${newItem.title}\nUploaded: ${new Date().toLocaleDateString()}\n\n${newItem.summary || ''}`,
+    };
+    setLibraryItems((prev) => [fullItem, ...prev]);
+    updateUser({ weeklyXP: user.weeklyXP + 50, retainedNodes: user.retainedNodes + 1 });
+  };
+
   const toggleBookmark = (id: string) => {
     setLibraryItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, bookmarked: !item.bookmarked } : item))
@@ -303,6 +357,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeCourseId,
         setActiveCourseId,
         activeLesson,
+        setActiveLesson,
+        availableLessons,
+        selectCourse,
+        selectLesson,
+        activeVideoUrl,
+        setActiveVideoUrl,
         markLessonComplete,
         timerSeconds,
         timerRunning,
@@ -318,12 +378,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addFastRecall,
         libraryItems,
         toggleBookmark,
+        addLibraryItem,
         flashcards,
         reviewFlashcard,
         isCommandPaletteOpen,
         setIsCommandPaletteOpen,
         isFastRecallOpen,
         setIsFastRecallOpen,
+        isUploadModalOpen,
+        setIsUploadModalOpen,
         theme,
         toggleTheme,
         geminiApiKey,

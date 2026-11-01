@@ -96,7 +96,7 @@ export interface LibraryItem {
   title: string;
   author: string;
   year?: string;
-  category: 'Book' | 'Research Paper' | 'Lecture Note' | 'Cheat Sheet' | 'Case Study';
+  category: 'Book' | 'Research Paper' | 'Lecture Note' | 'Cheat Sheet' | 'Case Study' | 'Video Lecture';
   tags: string[];
   readTime: string;
   progress: number;
@@ -106,6 +106,9 @@ export interface LibraryItem {
   fullNotes?: string;
   citation: string;
   bookmarked: boolean;
+  fileUrl?: string;
+  fileType?: string;
+  fileSize?: string;
 }
 
 export interface MockExam {

@@ -4,6 +4,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { QuickRecallModal } from './components/layout/QuickRecallModal';
+import { UploadModal } from './components/layout/UploadModal';
 import { HomeDashboard } from './components/views/HomeDashboard';
 import { ClassroomView } from './components/views/ClassroomView';
 import { AITutorView } from './components/views/AITutorView';
@@ -62,6 +63,7 @@ const MainLayout: React.FC = () => {
       {/* Global Modals */}
       <CommandPalette />
       <QuickRecallModal />
+      <UploadModal />
     </div>
   );
 };

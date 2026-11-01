@@ -101,6 +101,7 @@ export const currentClassroomLesson: Lesson = {
   moduleTitle: 'Module 03 • Advanced Context Compression & Quantization',
   duration: '24:18',
   completed: false,
+  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   keyTakeaways: [
     'Dense vector search often fails on exact alphanumeric tokens (SKUs, legal clauses, ticker symbols, tax codes).',
     'BM25 provides deterministic keyword precision with inverted indexes but suffers from vocabulary mismatch and synonym blindness.',
@@ -212,6 +213,243 @@ print("Fused Top Documents:", fused[:3])
   ],
 };
 
+export const courseLessonsMap: Record<string, Lesson[]> = {
+  'ai-pm-llm': [
+    currentClassroomLesson,
+    {
+      id: 'lesson-pq-sq8',
+      courseId: 'ai-pm-llm',
+      title: 'Vector Quantization: Product Quantizers (PQ) & Scalar Quantizers (SQ8)',
+      moduleTitle: 'Module 01 • Vector Compression & Memory Optimization',
+      duration: '18:45',
+      completed: true,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      keyTakeaways: [
+        'Scalar Quantization (SQ8) compresses 32-bit floats into 8-bit integers, yielding a 4x memory reduction with minimal recall loss (< 1%).',
+        'Product Quantization (PQ) divides D-dimensional vectors into m orthogonal sub-spaces and quantizes each with k-means centroids.',
+        'Asymmetric Distance Computation (ADC) compares full-precision queries against quantized database vectors without decompression.'
+      ],
+      markdownContent: `### Scalar & Product Quantization in Enterprise Vector Stores
+In enterprise vector databases handling hundreds of millions of embeddings, uncompressed float32 vectors exhaust cluster RAM rapidly (1M x 1536 x 4 bytes = 6.14 GB).
+
+SQ8 normalizes dimensions into [-128, 127], shrinking memory by 75%. Product Quantization (PQ) achieves up to 32x compression by encoding subvectors as byte code centroids.`,
+      quiz: [
+        {
+          question: 'What is the primary memory saving of SQ8 over Float32 embeddings?',
+          options: ['2x compression', '4x compression', '8x compression', '16x compression'],
+          correctIndex: 1,
+          explanation: 'Float32 is 4 bytes (32 bits), while int8 is 1 byte (8 bits). 32 / 8 = 4x compression.'
+        }
+      ]
+    },
+    {
+      id: 'lesson-speculative-decoding',
+      courseId: 'ai-pm-llm',
+      title: 'Speculative Decoding & KV Cache Paging Optimization',
+      moduleTitle: 'Module 02 • Inference Latency & KV Paging',
+      duration: '21:10',
+      completed: true,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      keyTakeaways: [
+        'Speculative decoding pairs a small draft model with a large target model to verify tokens in parallel batches.',
+        'PagedAttention solves KV cache memory fragmentation by allocating non-contiguous virtual memory blocks like OS virtual paging.'
+      ],
+      markdownContent: `### Speculative Decoding Mechanics
+Memory bandwidth is the primary bottleneck in autoregressive token generation. A small draft model (e.g. 1B parameter) proposes K tokens in parallel; the large target model evaluates all K draft tokens in a single forward pass.`,
+      quiz: [
+        {
+          question: 'Why does speculative decoding increase throughput without altering model output distribution?',
+          options: [
+            'It drops low probability tokens permanently.',
+            'The target model verifies draft tokens using rejection sampling, guaranteeing identical probability distribution to running the target model alone.',
+            'It trains the draft model on the target weights.',
+            'It operates only on embeddings.'
+          ],
+          correctIndex: 1,
+          explanation: 'Modified rejection sampling mathematically proves that verified tokens match the exact target distribution.'
+        }
+      ]
+    },
+    {
+      id: 'lesson-cross-encoder',
+      courseId: 'ai-pm-llm',
+      title: 'Cross-Encoder Distillation & FlashRank Rerankers',
+      moduleTitle: 'Module 04 • Neural Reranking at P99 Constraints',
+      duration: '16:30',
+      completed: false,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      keyTakeaways: [
+        'Cross-encoders perform full bidirectional self-attention between query and document text.',
+        'FlashRank distills heavy Cross-Encoders into compact ONNX models executing in under 8ms on CPU.'
+      ],
+      markdownContent: `### Two-Stage Cascaded Reranking
+First-stage bi-encoders produce candidates in under 15ms. Second-stage cross-encoders evaluate query-document token interactions with deep multi-head attention.`,
+      quiz: [
+        {
+          question: 'Why can Cross-Encoders not be pre-indexed into an approximate nearest neighbor (ANN) vector database?',
+          options: [
+            'They do not produce fixed-size document embeddings independently of queries.',
+            'Their parameters are too large for hard drives.',
+            'They only run on TPU pods.',
+            'They require XML input.'
+          ],
+          correctIndex: 0,
+          explanation: 'Cross-encoders process query and document concatenated together through transformer layers, so vectors cannot be pre-computed before query time.'
+        }
+      ]
+    }
+  ],
+  'monetary-policy': [
+    {
+      id: 'lesson-taylor-rule',
+      courseId: 'monetary-policy',
+      title: 'Taylor Rule vs Constrained Discretion in Emerging Markets',
+      moduleTitle: 'Module 01 • Monetary Frameworks & Inflation Targets',
+      duration: '28:15',
+      completed: true,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      keyTakeaways: [
+        'The Taylor Rule prescribes policy rates based on output gap and inflation gap: i = r* + π + 0.5(π - π*) + 0.5(y - y*).',
+        'Emerging market central banks must adjust for exchange rate shocks and capital outflow pressures.'
+      ],
+      markdownContent: `### Central Bank Reaction Functions
+The Flexible Inflation Targeting Framework (FITF) balances the 4% CPI midpoint while dampening output volatility.`,
+      quiz: [
+        {
+          question: 'In the classic Taylor Rule formulation, what happens to the nominal interest rate when inflation rises by 1%?',
+          options: [
+            'The nominal rate rises by more than 1% (Taylor Principle).',
+            'The nominal rate falls by 0.5%.',
+            'The nominal rate remains unchanged.',
+            'The central bank buys bonds.'
+          ],
+          correctIndex: 0,
+          explanation: 'The Taylor Principle requires the nominal rate to increase by more than one-for-one (typically 1.5x) so the real interest rate rises, cooling aggregate demand.'
+        }
+      ]
+    },
+    {
+      id: 'lesson-laf-corridor',
+      courseId: 'monetary-policy',
+      title: 'Liquidity Adjustment Facility (LAF) & Standing Deposit Facility (SDF)',
+      moduleTitle: 'Module 02 • Operational Liquidity Corridors',
+      duration: '22:40',
+      completed: false,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+      keyTakeaways: [
+        'SDF acts as the uncollateralized floor of the LAF liquidity corridor.',
+        'Marginal Standing Facility (MSF) acts as the penalized penal ceiling for emergency overnight borrowing.'
+      ],
+      markdownContent: `### The LAF Corridor Architecture
+The RBI operates a symmetric corridor with Repo at the center, SDF at the floor (Repo - 25 bps), and MSF at the ceiling (Repo + 25 bps).`,
+      quiz: [
+        {
+          question: 'What is the distinguishing feature of the Standing Deposit Facility (SDF) compared to Reverse Repo?',
+          options: [
+            'SDF does not require the central bank to provide government securities (G-Secs) as collateral to banks.',
+            'SDF charges a 20% penalty fee.',
+            'SDF is only available to retail investors.',
+            'SDF operates only on weekends.'
+          ],
+          correctIndex: 0,
+          explanation: 'SDF absorbs surplus banking liquidity without tying up sovereign bond collateral on the central bank balance sheet.'
+        }
+      ]
+    }
+  ],
+  'corporate-valuation': [
+    {
+      id: 'lesson-terminal-value',
+      courseId: 'corporate-valuation',
+      title: 'Terminal Value Sensitivity & Unlevered Free Cash Flow Projections',
+      moduleTitle: 'Module 01 • Discounted Cash Flow Mechanics',
+      duration: '31:20',
+      completed: false,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      keyTakeaways: [
+        'Terminal Value typically constitutes 60-85% of total enterprise value in DCF models.',
+        'Perpetual Growth rate g must strictly remain below long-term nominal GDP growth.'
+      ],
+      markdownContent: `### Terminal Value Formulations
+Gordon Growth Method: TV = [FCF_{n} * (1 + g)] / (WACC - g).
+Exit Multiple Method: TV = EBITDA_{n} * Target Multiple.`,
+      quiz: [
+        {
+          question: 'Why must the perpetual growth rate g never exceed the risk-free rate or GDP growth in a DCF model?',
+          options: [
+            'It would imply the company eventually becomes larger than the entire economy.',
+            'Excel throws a divide by zero error.',
+            'WACC would become negative.',
+            'Taxes would exceed 100%.'
+          ],
+          correctIndex: 0,
+          explanation: 'Mathematically, perpetual growth exceeding the economy means the enterprise asymptotically consumes the entire economic output.'
+        }
+      ]
+    }
+  ],
+  'product-sense-healthcare': [
+    {
+      id: 'lesson-nemt-prd',
+      courseId: 'product-sense-healthcare',
+      title: 'Non-Emergency Medical Transportation (NEMT) PRD & SLA Circuit Breakers',
+      moduleTitle: 'Module 01 • Healthcare Marketplace Topology',
+      duration: '27:10',
+      completed: false,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4',
+      keyTakeaways: [
+        'Healthcare transit mandates 99.8% on-time pickup SLAs for chemotherapy and dialysis appointments.',
+        'Dual-dispatch algorithms pre-assign backup drivers 15 minutes before scheduled departure.'
+      ],
+      markdownContent: `### SLA Circuit Breakers in Uber Health
+Standard rideshare drivers can cancel freely. NEMT healthcare rides enforce automated fallback re-dispatch circuits and hospital dashboard telemetry.`,
+      quiz: [
+        {
+          question: 'What is the highest-risk failure mode in Non-Emergency Medical Transportation?',
+          options: [
+            'Rider forgetting luggage in the vehicle.',
+            'Delayed pickup for time-critical clinical appointments (e.g., scheduled dialysis / radiation oncology).',
+            'Driver taking a toll route.',
+            'Vehicle interior cleanliness.'
+          ],
+          correctIndex: 1,
+          explanation: 'Missed dialysis or oncology sessions can cause patient health emergencies and cost hospitals thousands in rescheduled operating room time.'
+        }
+      ]
+    }
+  ],
+  'flink-kafka-streaming': [
+    {
+      id: 'lesson-flink-state',
+      courseId: 'flink-kafka-streaming',
+      title: 'Exactly-Once State Semantics & RocksDB State Backend Optimization',
+      moduleTitle: 'Module 01 • Distributed Stream Processing',
+      duration: '29:45',
+      completed: true,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+      keyTakeaways: [
+        'Asynchronous Barrier Snapshotting injects lightweight checkpoint barriers into stream flows without pausing execution.',
+        'RocksDB state backend maintains out-of-core state on disk while caching hot keys in off-heap block memory.'
+      ],
+      markdownContent: `### Chandy-Lamport in Flink
+Checkpoint barriers travel down the directed acyclic graph (DAG). When an operator receives barriers on all input channels, it takes an incremental snapshot of its local state backend.`,
+      quiz: [
+        {
+          question: 'How does Apache Flink achieve incremental checkpoints with RocksDB?',
+          options: [
+            'It copies the entire database every 10 seconds.',
+            'RocksDB flushes immutable SST files to disk; Flink uploads only newly created SST files to durable storage (S3/HDFS).',
+            'It compresses state with GZIP in RAM.',
+            'It restarts all pods.'
+          ],
+          correctIndex: 1,
+          explanation: 'Because SSTable files in RocksDB are immutable once written, incremental checkpoints simply record references to existing files and upload only newly generated delta SSTables.'
+        }
+      ]
+    }
+  ]
+};
+
 export const initialChatMessages = [
   {
     id: 'msg-1',
@@ -262,6 +500,42 @@ This phenomenon is famously known as the *Pin Risk Vortex*.`,
 ];
 
 export const libraryItemsData: LibraryItem[] = [
+  {
+    id: 'video-rag-optimization',
+    title: 'Deep Dive: Low-Latency RAG Architectures & Vector Quantization',
+    author: 'Dr. Elena Rostova',
+    year: '2026',
+    category: 'Video Lecture',
+    tags: ['RAG', 'Vector DB', 'Latency', 'HNSW', 'Quantization'],
+    readTime: '32m Video',
+    progress: 45,
+    rating: 5,
+    summary: 'Master lecture on sub-20ms hybrid search, reciprocal rank fusion (RRF), SQ8 vector compression, and multi-tenant partitioning.',
+    fullNotes: `# Video Lecture Notes: Low Latency RAG Architectures\n- Inverted index for BM25 exact match (SKUs, IDs, model numbers).\n- In-memory HNSW vector indexes for semantic intent.\n- Reciprocal Rank Fusion: RRF = 1 / (60 + rank). Prevents bias toward dense cosine scores.\n- Quantization: SQ8 shrinks float32 vectors to int8, cutting RAM by 75% while keeping >99% recall.`,
+    citation: 'Rostova, E. (2026). Low-Latency RAG Architectures. Stanford AI Lecture Series.',
+    bookmarked: true,
+    fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    fileType: 'video/mp4',
+    fileSize: '48.2 MB',
+  },
+  {
+    id: 'video-monetary-policy-lecture',
+    title: 'Central Bank Liquidity Transmission & Policy Rate Corridors',
+    author: 'Prof. Raghuram Patel',
+    year: '2025',
+    category: 'Video Lecture',
+    tags: ['Finance', 'Macroeconomics', 'RBI', 'Liquidity', 'LAF'],
+    readTime: '40m Video',
+    progress: 80,
+    rating: 5,
+    summary: 'Comprehensive analysis of standing deposit facility (SDF), marginal standing facility (MSF), and open market operations.',
+    fullNotes: `# Central Bank Operations Summary\n- The policy corridor operates between SDF (floor) and MSF (ceiling).\n- Liquidity absorption via overnight reverse repo vs fine-tuning variable rate reverse repo (VRRR).\n- Real interest rate differentials and capital flow volatility in emerging markets.`,
+    citation: 'Patel, R. (2025). Advanced Monetary Policy Transmission. National Banking Institute.',
+    bookmarked: false,
+    fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    fileType: 'video/mp4',
+    fileSize: '54.6 MB',
+  },
   {
     id: 'hull-derivatives',
     title: 'Options, Futures, and Other Derivatives (10th Ed.)',

@@ -2,11 +2,10 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, courses, setCurrentPath, setActiveCourseId, setIsFastRecallOpen } = useApp();
+  const { user, courses, setCurrentPath, selectCourse, setIsFastRecallOpen } = useApp();
 
   const handleResumeCourse = (courseId: string) => {
-    setActiveCourseId(courseId);
-    setCurrentPath('classroom');
+    selectCourse(courseId);
   };
 
   return (
