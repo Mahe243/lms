@@ -57,7 +57,7 @@ export const AITutorView: React.FC = () => {
           })
         });
         const data = await response.json();
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I processed your request, Aryan. Let's delve into the underlying principles.";
+        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I processed your request, Maheswar. Let's delve into the underlying principles.";
         
         setIsTyping(false);
         setMessages((prev) => [
@@ -216,7 +216,7 @@ From a systems and financial perspective, consider the primary trade-offs:
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] mb-2 font-code-sm opacity-70">
-                    <span className="font-bold">{msg.sender === 'user' ? 'Aryan Sharma' : 'Professor Nova'}</span>
+                    <span className="font-bold">{msg.sender === 'user' ? 'Maheswar' : 'Professor Nova'}</span>
                     <span>{msg.timestamp}</span>
                   </div>
 

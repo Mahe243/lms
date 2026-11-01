@@ -6,10 +6,16 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+def get_database_url() -> str:
+    raw_url = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'lms.db'}")
+    if raw_url.startswith("postgres://"):
+        return raw_url.replace("postgres://", "postgresql://", 1)
+    return raw_url
+
 class Settings:
     PROJECT_NAME: str = "Personal LMS"
     PROJECT_VERSION: str = "1.0.0"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'lms.db'}")
+    DATABASE_URL: str = get_database_url()
     UPLOAD_DIR: Path = BASE_DIR / "uploads"
     BACKUP_DIR: Path = BASE_DIR / "backups"
     

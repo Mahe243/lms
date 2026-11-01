@@ -1,7 +1,7 @@
 import type { Course, Lesson, Flashcard, LibraryItem, MockExam, ProjectData, UserProfile } from '../types';
 
 export const initialUser: UserProfile = {
-  name: 'Aryan Sharma',
+  name: 'Maheswar',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
   program: 'MBA Product & CS Dual Track',
   cohort: "Class of '28",
@@ -222,7 +222,7 @@ export const initialChatMessages = [
   {
     id: 'msg-2',
     sender: 'tutor' as const,
-    text: `Delighted you asked, Aryan. This touches the mathematical core of option convexity and hedging mechanics.
+    text: `Delighted you asked, Maheswar. This touches the mathematical core of option convexity and hedging mechanics.
 
 ### 1. Mathematical Foundation
 Delta (\\Delta) represents your first-order sensitivity to underlying spot price $S$:
@@ -549,7 +549,7 @@ class CreditRiskEngine:
 # Live Engine Execution
 engine = CreditRiskEngine()
 applicant = ApplicantProfile(
-    name="Aryan Sharma Ventures",
+    name="Maheswar Ventures",
     monthly_revenue=48000.0,
     credit_score=782,
     existing_debt_service=6500.0,
@@ -561,7 +561,7 @@ for k, v in decision.items():
     print(f"{k.upper()}: {v}")
 `,
   simulationConfig: {
-    applicantName: 'Aryan Sharma Ventures',
+    applicantName: 'Maheswar Ventures',
     monthlyIncome: 48000,
     creditScore: 782,
     existingDebt: 6500,
