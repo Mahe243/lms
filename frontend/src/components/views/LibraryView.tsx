@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { KnowledgeTrailRunner } from '../kingdom/KnowledgeTrailRunner';
-import { NovaCompanion } from '../kingdom/NovaCompanion';
+import { ResourceReaderModal } from '../library/ResourceReaderModal';
 import type { LibraryItem, Flashcard } from '../../types';
 
 export const LibraryView: React.FC = () => {
@@ -326,63 +326,11 @@ export const LibraryView: React.FC = () => {
 
       {/* READING MODAL / DRAWER */}
       {activeReaderItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div
-            className="w-full max-w-3xl max-h-[85vh] bg-surface-container-lowest dark:bg-dark-surface rounded-2xl shadow-2xl border border-surface-variant/60 dark:border-dark-border overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-surface-variant/40 dark:border-dark-border">
-              <div className="flex items-center gap-3">
-                <NovaCompanion expression="focused" size="sm" />
-                <div>
-                  <span className="text-[10px] font-code-sm uppercase font-bold text-kingdom-cyan block">
-                    {activeReaderItem.category} • {activeReaderItem.author}
-                  </span>
-                  <h3 className="font-headline-sm text-lg font-bold font-serif text-on-surface dark:text-dark-text">
-                    {activeReaderItem.title}
-                  </h3>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveReaderItem(null)}
-                className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto space-y-4 text-xs font-body-md text-on-surface dark:text-dark-text leading-relaxed">
-              <div className="p-3 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/40 font-code-sm">
-                <span className="font-bold text-on-surface block mb-1">Standard Academic Citation:</span>
-                <p className="text-on-surface-variant">{activeReaderItem.citation}</p>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-sm mb-1">Executive Summary</h4>
-                <p className="text-on-surface-variant leading-relaxed">{activeReaderItem.summary}</p>
-              </div>
-
-              {activeReaderItem.fullNotes && (
-                <div>
-                  <h4 className="font-bold text-sm mb-1">Detailed Research Annotations</h4>
-                  <pre className="p-4 rounded-xl bg-surface-container-low dark:bg-dark-surface-2 border border-surface-variant/40 font-mono text-xs whitespace-pre-wrap overflow-x-auto text-on-surface dark:text-dark-text">
-                    {activeReaderItem.fullNotes}
-                  </pre>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 bg-surface-container-low dark:bg-dark-surface-2 border-t border-surface-variant/40 flex items-center justify-between text-xs">
-              <span className="font-code-sm text-on-surface-variant">Progress: {activeReaderItem.progress}% completed</span>
-              <button
-                onClick={() => setActiveReaderItem(null)}
-                className="px-5 py-2 rounded-xl bg-primary text-white font-bold cursor-pointer"
-              >
-                Close Viewer
-              </button>
-            </div>
-          </div>
-        </div>
+        <ResourceReaderModal
+          item={activeReaderItem}
+          onClose={() => setActiveReaderItem(null)}
+          onToggleBookmark={toggleBookmark}
+        />
       )}
     </div>
   );

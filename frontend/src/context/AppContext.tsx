@@ -185,7 +185,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             title: r.title,
             author: r.author || 'Author / Institution',
             year: r.created_at ? new Date(r.created_at).getFullYear().toString() : '2026',
-            category: (r.type === 'pdf' ? 'Research Paper' : r.type === 'video' ? 'Lecture Note' : 'Book') as any,
+            category: ((r.metadata_info?.category) ||
+              (r.tags?.includes('MOC') ? 'Cheat Sheet' :
+               r.tags?.includes('Session') ? 'Lecture Note' :
+               r.tags?.includes('Concept') ? 'Research Paper' :
+               r.type === 'pdf' ? 'Research Paper' :
+               r.type === 'video' ? 'Lecture Note' :
+               r.type === 'doc' ? 'Lecture Note' : 'Book')) as any,
             tags: r.tags && r.tags.length > 0 ? r.tags : ['Resource'],
             readTime: `${r.estimated_duration_mins || 15}m`,
             progress: r.resume_position_secs > 0 ? 50 : 0,
@@ -195,6 +201,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             bookmarked: r.is_favorite,
             fileUrl: r.file_url || r.url,
             fileType: r.type,
+            fullNotes: r.extracted_text || r.description || '',
           }));
           setLibraryItems(mappedItems);
         }
@@ -501,7 +508,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addLibraryItem = (newItem: Partial<LibraryItem>) => {
     const fullItem: LibraryItem = {
-      id: `lib-${Date.now()}`,
+      id: newItem.id || `lib-${Date.now()}`,
       title: newItem.title || 'Untitled Document',
       author: newItem.author || user.name,
       year: newItem.year || '2026',

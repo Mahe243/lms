@@ -251,6 +251,7 @@ class ResourceCreate(BaseModel):
     type: str # video, pdf, article, doc, presentation, image, audio, book, external_course, practice
     url: Optional[str] = None
     description: Optional[str] = ""
+    extracted_text: Optional[str] = None
     author: Optional[str] = None
     tags: Optional[List[str]] = []
     estimated_duration_mins: Optional[int] = 15
@@ -266,6 +267,7 @@ class ResourceUpdate(BaseModel):
     type: Optional[str] = None
     url: Optional[str] = None
     description: Optional[str] = None
+    extracted_text: Optional[str] = None
     author: Optional[str] = None
     tags: Optional[List[str]] = None
     estimated_duration_mins: Optional[int] = None
@@ -285,6 +287,7 @@ class ResourceOut(BaseModel):
     file_path: Optional[str]
     file_url: Optional[str] = None
     description: str
+    extracted_text: Optional[str] = None
     author: Optional[str]
     tags: List[str]
     estimated_duration_mins: int

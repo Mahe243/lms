@@ -27,9 +27,15 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         get_or_create_primary_user(db)
-        from backend.models import Course
+        from backend.models import Course, Resource
         if db.query(Course).count() == 0:
             seed_demo_data(db)
+        if db.query(Resource).count() <= 2:
+            try:
+                from backend.services.vault_ingest import ingest_pmii_vault
+                ingest_pmii_vault(db)
+            except Exception as e:
+                print(f"Vault auto-ingest warning: {e}")
     except Exception as e:
         print(f"Seed initialization warning: {e}")
     finally:

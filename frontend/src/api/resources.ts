@@ -10,6 +10,7 @@ export interface ResourceResponse {
   file_path?: string;
   file_url?: string;
   description: string;
+  extracted_text?: string;
   author?: string;
   tags: string[];
   estimated_duration_mins: number;
@@ -25,6 +26,17 @@ export interface ResourceResponse {
   is_demo: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface ResourceContentResponse {
+  id: string;
+  title: string;
+  type: string;
+  file_url?: string;
+  description: string;
+  extracted_text: string;
+  author?: string;
+  tags: string[];
 }
 
 export const resourcesApi = {
@@ -43,6 +55,14 @@ export const resourcesApi = {
     if (params?.is_favorite !== undefined) searchParams.append('is_favorite', String(params.is_favorite));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return apiRequest<ResourceResponse[]>(`/api/resources${qs}`);
+  },
+
+  getResource: async (id: string): Promise<ResourceResponse> => {
+    return apiRequest<ResourceResponse>(`/api/resources/${id}`);
+  },
+
+  getResourceContent: async (id: string): Promise<ResourceContentResponse> => {
+    return apiRequest<ResourceContentResponse>(`/api/resources/${id}/content`);
   },
 
   uploadResource: async (formData: FormData): Promise<ResourceResponse> => {

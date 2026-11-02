@@ -14,6 +14,15 @@ from backend.services.text_processor import extract_pdf_pages, extract_text_file
 router = APIRouter(prefix="/api/resources", tags=["Resources"])
 
 def resource_to_dict(r: Resource) -> dict:
+    extracted = r.extracted_text
+    if not extracted and r.file_path and os.path.exists(r.file_path):
+        ext = os.path.splitext(r.file_path)[1].lower()
+        if ext in [".txt", ".md"]:
+            try:
+                extracted = extract_text_file(r.file_path)
+            except Exception:
+                extracted = ""
+
     return {
         "id": r.id,
         "course_id": r.course_id,
@@ -24,6 +33,7 @@ def resource_to_dict(r: Resource) -> dict:
         "file_path": r.file_path,
         "file_url": f"/uploads/{os.path.basename(r.file_path)}" if r.file_path else r.url,
         "description": r.description,
+        "extracted_text": extracted or "",
         "author": r.author,
         "tags": json.loads(r.tags) if r.tags else [],
         "estimated_duration_mins": r.estimated_duration_mins,
@@ -91,6 +101,7 @@ def create_resource(data: ResourceCreate, db: Session = Depends(get_db)):
         type=data.type,
         url=data.url,
         description=data.description or "",
+        extracted_text=data.extracted_text or "",
         author=data.author,
         tags=json.dumps(data.tags or []),
         estimated_duration_mins=data.estimated_duration_mins or 15,
@@ -207,6 +218,32 @@ def get_resource(resource_id: str, db: Session = Depends(get_db)):
     if not r:
         raise HTTPException(status_code=404, detail="Resource not found")
     return resource_to_dict(r)
+
+@router.get("/{resource_id}/content")
+def get_resource_content(resource_id: str, db: Session = Depends(get_db)):
+    r = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    
+    extracted = r.extracted_text
+    if not extracted and r.file_path and os.path.exists(r.file_path):
+        ext = os.path.splitext(r.file_path)[1].lower()
+        if ext in [".txt", ".md"]:
+            try:
+                extracted = extract_text_file(r.file_path)
+            except Exception:
+                extracted = ""
+
+    return {
+        "id": r.id,
+        "title": r.title,
+        "type": r.type,
+        "file_url": f"/uploads/{os.path.basename(r.file_path)}" if r.file_path else r.url,
+        "description": r.description,
+        "extracted_text": extracted or "",
+        "author": r.author,
+        "tags": json.loads(r.tags) if r.tags else []
+    }
 
 @router.put("/{resource_id}", response_model=ResourceOut)
 def update_resource(resource_id: str, data: ResourceUpdate, db: Session = Depends(get_db)):

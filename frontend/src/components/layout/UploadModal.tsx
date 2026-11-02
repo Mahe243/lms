@@ -76,6 +76,7 @@ export const UploadModal: React.FC = () => {
     let fileUrl = linkUrl;
     let fileType = 'link';
     let fileSize = '';
+    let uploadedResult: any = null;
 
     if (selectedFile) {
       fileSize = `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`;
@@ -92,6 +93,7 @@ export const UploadModal: React.FC = () => {
 
         setUploadProgress(60);
         const uploaded = await resourcesApi.uploadResource(formData);
+        uploadedResult = uploaded;
         setUploadProgress(95);
 
         if (uploaded.file_url) {
@@ -115,12 +117,14 @@ export const UploadModal: React.FC = () => {
       .filter((t) => t.length > 0);
 
     addLibraryItem({
+      id: uploadedResult?.id,
       title: title || (selectedFile ? selectedFile.name : 'Untitled Artifact'),
       author: author || user.name,
       category,
       tags: parsedTags.length > 0 ? parsedTags : ['Uploaded Artifact'],
       readTime: category === 'Video Lecture' ? '25m Video' : '15m Read',
-      summary: summary || `Uploaded on ${new Date().toLocaleDateString()}`,
+      summary: summary || uploadedResult?.description || `Uploaded on ${new Date().toLocaleDateString()}`,
+      fullNotes: uploadedResult?.extracted_text || summary || '',
       citation: `${author || user.name} (2026). ${title || 'Resource'}. Personal LMS Vault.`,
       fileUrl,
       fileType,

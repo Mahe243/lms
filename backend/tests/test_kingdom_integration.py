@@ -234,3 +234,28 @@ def test_project_milestone_idempotency(client, test_db):
     assert res2.status_code == 200
     assert res2.json()["success"] is False
     assert res2.json()["reason"] == "already_awarded"
+
+
+def test_resource_full_content_and_extraction(client, test_db):
+    """Verify that resources provide complete markdown text, both on creation and /content endpoint."""
+    # Create resource with full notes
+    res = client.post("/api/resources", json={
+        "title": "System Design — Caching Strategies",
+        "type": "doc",
+        "description": "Overview of cache-aside and write-through patterns.",
+        "extracted_text": "# Caching Strategies\n\n## Cache-Aside\nApplication coordinates read/write directly.\n\n## Write-Through\nCache handles DB updates synchronously.",
+        "author": "Tech Architect",
+        "tags": ["System Design", "Caching"]
+    })
+    assert res.status_code == 200
+    res_data = res.json()
+    assert res_data["title"] == "System Design — Caching Strategies"
+    assert "Cache-Aside" in res_data["extracted_text"]
+
+    # Verify GET /api/resources/{id}/content endpoint
+    content_res = client.get(f"/api/resources/{res_data['id']}/content")
+    assert content_res.status_code == 200
+    content_data = content_res.json()
+    assert content_data["id"] == res_data["id"]
+    assert "Write-Through" in content_data["extracted_text"]
+    assert content_data["title"] == "System Design — Caching Strategies"
