@@ -6,7 +6,7 @@ root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from backend.main import app
+from backend.main import app as fastapi_app
 
 class VercelPathNormalizer:
     """Normalizes ASGI scope path when Vercel rewrites to /api/index.py or /api/index"""
@@ -22,4 +22,5 @@ class VercelPathNormalizer:
                 scope["path"] = path.replace("/api/index.py", "", 1)
         await self.asgi_app(scope, receive, send)
 
-handler = VercelPathNormalizer(app)
+handler = VercelPathNormalizer(fastapi_app)
+app = handler
