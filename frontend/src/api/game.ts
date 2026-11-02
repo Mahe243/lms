@@ -93,4 +93,30 @@ export const gameApi = {
     apiRequest<{ success: boolean; message: string; wallet: any }>('/api/game/reset', {
       method: 'POST',
     }),
+  recordProjectMilestone: (data: {
+    project_key: string;
+    milestone_key: string;
+    title: string;
+    summary?: string;
+  }) =>
+    apiRequest<{
+      status: string;
+      project_key: string;
+      milestone_key: string;
+      reward: any;
+      forge_building: any;
+    }>('/api/game/projects/milestone', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getProjectMilestones: () =>
+    apiRequest<Array<{
+      id: string;
+      project_key: string;
+      milestone_key: string;
+      title: string;
+      completed: boolean;
+      result_summary: string;
+      completed_at: string;
+    }>>('/api/game/projects'),
 };

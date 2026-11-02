@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.schemas import (
@@ -12,9 +13,9 @@ from backend.services.earning_rules import (
     get_or_create_wallet, calculate_level_info, get_real_kingdom_stats,
     get_or_generate_daily_missions, claim_mission_reward,
     check_achievements, list_market_items, purchase_cosmetic,
-    equip_cosmetic, reset_game_progress, utc_now
+    equip_cosmetic, reset_game_progress, process_project_milestone, utc_now
 )
-from backend.models import CosmeticUnlock, GameAchievement
+from backend.models import CosmeticUnlock, GameAchievement, ProjectRecord
 
 router = APIRouter(prefix="/api/game", tags=["Evergrowth Kingdom & Game Economy"])
 
@@ -148,3 +149,29 @@ def get_game_profile(owner_id: str = "learner", db: Session = Depends(get_db)):
         "achievements": achievements,
         "equipped_cosmetics": equipped
     }
+
+class ProjectMilestoneSubmit(BaseModel):
+    project_key: str
+    milestone_key: str
+    title: str
+    summary: Optional[str] = ""
+
+@router.post("/projects/milestone")
+def record_project_milestone(data: ProjectMilestoneSubmit, owner_id: str = "learner", db: Session = Depends(get_db)):
+    result = process_project_milestone(db, data.project_key, data.milestone_key, data.title, data.summary or "", owner_id)
+    return result
+
+@router.get("/projects")
+def get_project_milestones(owner_id: str = "learner", db: Session = Depends(get_db)):
+    records = db.query(ProjectRecord).filter(ProjectRecord.owner_id == owner_id).all()
+    return [
+        {
+            "id": r.id,
+            "project_key": r.project_key,
+            "milestone_key": r.milestone_key,
+            "title": r.title,
+            "completed": r.completed,
+            "result_summary": r.result_summary,
+            "completed_at": r.completed_at
+        } for r in records
+    ]
