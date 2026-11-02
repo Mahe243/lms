@@ -59,6 +59,9 @@ def update_session(session_id: str, data: StudySessionUpdate, db: Session = Depe
         sess.status = data.status
         if data.status in ["completed", "abandoned"] and not sess.end_time:
             sess.end_time = datetime.now(timezone.utc)
+        if data.status == "completed":
+            from backend.services.earning_rules import process_study_session_completion
+            process_study_session_completion(db, session_id)
     if data.reflection_completed is not None: sess.reflection_completed = data.reflection_completed
     if data.reflection_unclear is not None: sess.reflection_unclear = data.reflection_unclear
     if data.reflection_confidence is not None: sess.reflection_confidence = data.reflection_confidence

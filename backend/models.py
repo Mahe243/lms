@@ -506,3 +506,94 @@ class Notification(Base):
     is_read = Column(Boolean, default=False)
     scheduled_for = Column(DateTime, default=utc_now)
     created_at = Column(DateTime, default=utc_now)
+
+# -------------------------------------------------------------
+# EVERGROWTH KINGDOM & GAME ECONOMY MODELS
+# -------------------------------------------------------------
+
+class GameWallet(Base):
+    __tablename__ = "game_wallets"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    owner_id = Column(String, default="learner", index=True)
+    coin_balance = Column(Integer, default=0, nullable=False)
+    total_xp = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    transactions = relationship("GameTransaction", back_populates="wallet", cascade="all, delete-orphan")
+
+class GameTransaction(Base):
+    __tablename__ = "game_transactions"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    wallet_id = Column(String, ForeignKey("game_wallets.id", ondelete="CASCADE"), nullable=False)
+    transaction_type = Column(String, nullable=False)  # earn_coins, spend_coins, earn_xp, reset
+    amount = Column(Integer, nullable=False)
+    currency = Column(String, nullable=False)  # coins, xp
+    reason = Column(String, default="")
+    source_type = Column(String, nullable=False)  # lesson, flashcard, quiz, study_session, mission, shop, project, hint
+    source_id = Column(String, default="")
+    idempotency_key = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    wallet = relationship("GameWallet", back_populates="transactions")
+
+class KingdomBuilding(Base):
+    __tablename__ = "kingdom_buildings"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    owner_id = Column(String, default="learner", index=True)
+    building_type = Column(String, nullable=False)  # citadel, academy, archive, arena, sanctuary, forge, observatory, hall
+    building_level = Column(Integer, default=1)
+    current_progress = Column(Float, default=0.0)  # percentage to next tier
+    next_milestone = Column(String, default="")
+    custom_skin = Column(String, default="default")
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+class DailyMission(Base):
+    __tablename__ = "daily_missions"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    owner_id = Column(String, default="learner", index=True)
+    mission_date = Column(String, nullable=False, index=True)  # YYYY-MM-DD
+    mission_type = Column(String, nullable=False)  # lesson, flashcard, focus, quiz, revision
+    title = Column(String, nullable=False)
+    description = Column(String, default="")
+    target_value = Column(Integer, default=1)
+    current_value = Column(Integer, default=0)
+    reward_coins = Column(Integer, default=15)
+    reward_xp = Column(Integer, default=30)
+    is_completed = Column(Boolean, default=False)
+    is_claimed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    claimed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+
+class GameAchievement(Base):
+    __tablename__ = "game_achievements"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    owner_id = Column(String, default="learner", index=True)
+    achievement_type = Column(String, nullable=False, index=True)  # first_lesson, focus_master, etc.
+    title = Column(String, nullable=False)
+    description = Column(String, default="")
+    badge_icon = Column(String, default="trophy")
+    reward_coins = Column(Integer, default=50)
+    reward_xp = Column(Integer, default=100)
+    unlocked_at = Column(DateTime, default=utc_now)
+
+class CosmeticUnlock(Base):
+    __tablename__ = "cosmetic_unlocks"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    owner_id = Column(String, default="learner", index=True)
+    item_id = Column(String, nullable=False, index=True)
+    item_type = Column(String, nullable=False)  # citadel_skin, academy_skin, path_style, garden_decor, water_feature, nova_accessory
+    is_equipped = Column(Boolean, default=False)
+    unlocked_at = Column(DateTime, default=utc_now)
+
+class ProjectRecord(Base):
+    __tablename__ = "project_records"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    owner_id = Column(String, default="learner", index=True)
+    project_key = Column(String, nullable=False)  # fintech, uber
+    milestone_key = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    completed = Column(Boolean, default=True)
+    result_summary = Column(Text, default="")
+    completed_at = Column(DateTime, default=utc_now)

@@ -231,9 +231,9 @@ def get_analytics_metrics(db: Session) -> Dict[str, Any]:
 
     streak_info = calculate_study_streak(db, settings.STREAK_MIN_MINUTES)
 
-    # Activity heatmap: study minutes per day for last 90 days
+    # Activity heatmap: study minutes per day for 364 days (52 full weeks of real learning)
     heatmap = []
-    for day_offset in range(89, -1, -1):
+    for day_offset in range(363, -1, -1):
         day_date = (now - timedelta(days=day_offset)).date()
         d_start = datetime(day_date.year, day_date.month, day_date.day, 0, 0, 0)
         d_end = datetime(day_date.year, day_date.month, day_date.day, 23, 59, 59)
