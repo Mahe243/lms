@@ -53,16 +53,16 @@ export const KnowledgeTrailRunner: React.FC<KnowledgeTrailRunnerProps> = ({
       { id: currentCard.id, rating, front: currentCard.front },
     ]);
 
-    // Track local XP / coin gains (10 XP + 2 Coins per card)
-    setEarnedXp((prev) => prev + 10);
-    setEarnedCoins((prev) => prev + 2);
-
     try {
-      // Backend review submission
-      await flashcardsApi.reviewCard(currentCard.id, rating, elapsedMs);
+      // Backend authoritative review submission & rewards
+      const res = await flashcardsApi.reviewCard(currentCard.id, rating, elapsedMs);
+      if (res && (res as any).reward && (res as any).reward.success) {
+        setEarnedXp((prev) => prev + ((res as any).reward.awarded_xp || 0));
+        setEarnedCoins((prev) => prev + ((res as any).reward.awarded_coins || 0));
+      }
       if (onRefreshWallet) onRefreshWallet();
     } catch {
-      // If card ID is local-only, still trigger wallet refresh
+      // If card is offline or local fallback, still trigger wallet sync
       if (onRefreshWallet) onRefreshWallet();
     } finally {
       setIsSubmitting(false);

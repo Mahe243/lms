@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import confetti from 'canvas-confetti';
+import { resourcesApi } from '../../api/resources';
 
 export const UploadModal: React.FC = () => {
   const { isUploadModalOpen, setIsUploadModalOpen, addLibraryItem, courses, setActiveVideoUrl, setCurrentPath, user } = useApp();
@@ -19,6 +20,7 @@ export const UploadModal: React.FC = () => {
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,72 +78,68 @@ export const UploadModal: React.FC = () => {
     let fileSize = '';
 
     if (selectedFile) {
-      fileUrl = URL.createObjectURL(selectedFile);
-      fileType = selectedFile.type || 'document';
       fileSize = `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`;
-    }
+      fileType = selectedFile.type || 'document';
 
-    // Try optional backend upload
-    if (selectedFile) {
       try {
         const formData = new FormData();
         formData.append('file', selectedFile);
-        formData.append('title', title);
-        formData.append('type', category.toLowerCase());
-        formData.append('course_id', associatedCourse);
-        formData.append('author', author);
-        formData.append('description', summary);
+        formData.append('title', title || selectedFile.name);
+        formData.append('res_type', category === 'Video Lecture' ? 'video' : category === 'Research Paper' ? 'pdf' : 'doc');
+        if (associatedCourse) formData.append('course_id', associatedCourse);
+        if (author) formData.append('author', author);
+        if (summary) formData.append('description', summary);
 
-        await fetch('/api/resources/upload', {
-          method: 'POST',
-          body: formData,
-        }).catch(() => {
-          // Backend might be offline; client-side storage handles it seamlessly
-        });
-      } catch {
-        // Fallback to client-side only
+        setUploadProgress(60);
+        const uploaded = await resourcesApi.uploadResource(formData);
+        setUploadProgress(95);
+
+        if (uploaded.file_url) {
+          fileUrl = uploaded.file_url;
+        } else if (uploaded.file_path) {
+          fileUrl = `/uploads/${uploaded.file_path.split(/[\\/]/).pop()}`;
+        }
+      } catch (err: any) {
+        setIsUploading(false);
+        setUploadError(err.message || 'Server upload failed. Please verify that the backend is running.');
+        return; // NEVER display fake success when server upload fails!
       }
     }
 
-    setUploadProgress(70);
+    setUploadProgress(100);
+    setIsUploading(false);
 
-    setTimeout(() => {
-      setUploadProgress(100);
-      setIsUploading(false);
+    const parsedTags = tagsInput
+      .split(',')
+      .map((t) => t.trim().replace(/^#/, ''))
+      .filter((t) => t.length > 0);
 
-      const parsedTags = tagsInput
-        .split(',')
-        .map((t) => t.trim().replace(/^#/, ''))
-        .filter((t) => t.length > 0);
+    addLibraryItem({
+      title: title || (selectedFile ? selectedFile.name : 'Untitled Artifact'),
+      author: author || user.name,
+      category,
+      tags: parsedTags.length > 0 ? parsedTags : ['Uploaded Artifact'],
+      readTime: category === 'Video Lecture' ? '25m Video' : '15m Read',
+      summary: summary || `Uploaded on ${new Date().toLocaleDateString()}`,
+      citation: `${author || user.name} (2026). ${title || 'Resource'}. Personal LMS Vault.`,
+      fileUrl,
+      fileType,
+      fileSize,
+    });
 
-      addLibraryItem({
-        title: title || 'Untitled Artifact',
-        author: author || user.name,
-        category,
-        tags: parsedTags.length > 0 ? parsedTags : ['Uploaded Artifact'],
-        readTime: category === 'Video Lecture' ? '25m Video' : '15m Read',
-        summary: summary || `Uploaded on ${new Date().toLocaleDateString()}`,
-        citation: `${author || user.name} (2026). ${title}. Personal LMS Vault.`,
-        fileUrl,
-        fileType,
-        fileSize,
-      });
+    confetti({
+      particleCount: 70,
+      spread: 60,
+      origin: { y: 0.6 },
+    });
 
-      confetti({
-        particleCount: 70,
-        spread: 60,
-        origin: { y: 0.6 },
-      });
+    if (category === 'Video Lecture' && fileUrl) {
+      setActiveVideoUrl(fileUrl);
+      setCurrentPath('classroom');
+    }
 
-      // If user uploaded a video, immediately load and open it in Classroom!
-      if (category === 'Video Lecture' && fileUrl) {
-        setActiveVideoUrl(fileUrl);
-        setCurrentPath('classroom');
-      }
-
-      setIsUploadModalOpen(false);
-      resetForm();
-    }, 600);
+    setIsUploadModalOpen(false);
+    resetForm();
   };
 
   const resetForm = () => {
@@ -151,6 +149,7 @@ export const UploadModal: React.FC = () => {
     setTagsInput('');
     setLinkUrl('');
     setUploadProgress(0);
+    setUploadError(null);
   };
 
   return (
@@ -213,6 +212,12 @@ export const UploadModal: React.FC = () => {
 
         {/* Scrollable Form */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs font-body-md">
+          {uploadError && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              <span>{uploadError}</span>
+            </div>
+          )}
           {activeTab === 'file' ? (
             <div>
               {/* Drag & Drop Area */}

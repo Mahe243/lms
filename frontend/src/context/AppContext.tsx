@@ -16,6 +16,9 @@ import {
   flashcardsData,
 } from '../data/mockData';
 import { soundscapeEngine } from '../utils/soundscapes';
+import { coursesApi } from '../api/courses';
+import { flashcardsApi } from '../api/flashcards';
+import { resourcesApi } from '../api/resources';
 import type { SoundscapeType } from '../utils/soundscapes';
 
 export interface GameWalletState {
@@ -111,7 +114,93 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : initialUser;
   });
 
-  const [courses] = useState<Course[]>(coursesData);
+  const [courses, setCourses] = useState<Course[]>(coursesData);
+
+  // Load real courses from backend on mount
+  useEffect(() => {
+    coursesApi.listCourses()
+      .then((data) => {
+        if (data && data.length > 0) {
+          const mappedCourses: Course[] = data.map((c) => {
+            const trackVal: 'MBA' | 'CS' | 'Finance' =
+              c.category === 'Computer Science' || c.category === 'CS'
+                ? 'CS'
+                : c.category === 'Finance'
+                ? 'Finance'
+                : 'MBA';
+            return {
+              id: c.id,
+              title: c.name,
+              track: trackVal,
+              code: c.id.slice(0, 8).toUpperCase(),
+              instructor: c.instructor || 'Learnova Faculty',
+              progress: c.progress?.completion_percentage || 0,
+              totalModules: c.modules?.length || 1,
+              completedModules:
+                c.modules?.filter((m) => m.topics.length > 0 && m.topics.every((t) => t.status === 'completed')).length || 0,
+              currentLesson: c.modules?.[0]?.topics?.[0]?.title || 'Course Orientation',
+              timeLeft: `${(c.progress?.total_topics || 4) * 25}m left`,
+              image:
+                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600',
+              accentColor: c.cover_color || '#4f46e5',
+              description: c.description || '',
+            };
+          });
+          setCourses(mappedCourses);
+        }
+      })
+      .catch(() => {
+        // Fallback gracefully to preset courses
+      });
+  }, []);
+
+  // Load real flashcards from backend on mount
+  useEffect(() => {
+    flashcardsApi.getCards()
+      .then((cards) => {
+        if (cards && cards.length > 0) {
+          const mappedCards: Flashcard[] = cards.map((c) => ({
+            id: c.id,
+            front: c.front,
+            back: c.back,
+            category: c.card_type || 'General',
+            tags: c.tags && c.tags.length > 0 ? c.tags : ['Archival'],
+            difficulty: c.stability > 5.0 ? 'easy' : c.stability > 2.0 ? 'medium' : 'hard',
+            reviewCount: c.reps,
+            nextReview: c.next_review_at ? new Date(c.next_review_at).toLocaleDateString() : 'Today',
+          }));
+          setFlashcards(mappedCards);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load real library items from backend on mount
+  useEffect(() => {
+    resourcesApi.listResources()
+      .then((resList) => {
+        if (resList && resList.length > 0) {
+          const mappedItems: LibraryItem[] = resList.map((r) => ({
+            id: r.id,
+            title: r.title,
+            author: r.author || 'Author / Institution',
+            year: r.created_at ? new Date(r.created_at).getFullYear().toString() : '2026',
+            category: (r.type === 'pdf' ? 'Research Paper' : r.type === 'video' ? 'Lecture Note' : 'Book') as any,
+            tags: r.tags && r.tags.length > 0 ? r.tags : ['Resource'],
+            readTime: `${r.estimated_duration_mins || 15}m`,
+            progress: r.resume_position_secs > 0 ? 50 : 0,
+            rating: r.personal_rating || 5,
+            summary: r.description || 'Archived learning resource in Second Brain vault.',
+            citation: `${r.author || 'Learnova'} (2026). ${r.title}.`,
+            bookmarked: r.is_favorite,
+            fileUrl: r.file_url || r.url,
+            fileType: r.type,
+          }));
+          setLibraryItems(mappedItems);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [activeCourseId, setActiveCourseId] = useState<string>('ai-pm-llm');
   const [activeLesson, setActiveLesson] = useState<Lesson>(currentClassroomLesson);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string>(
@@ -384,8 +473,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser((prev) => ({ ...prev, ...updates }));
   };
 
-  const markLessonComplete = (_lessonId: string) => {
+  const markLessonComplete = async (lessonId: string) => {
     setActiveLesson((prev) => ({ ...prev, completed: true }));
+    try {
+      await coursesApi.updateTopicStatus(lessonId, 'completed');
+    } catch {
+      // offline fallback
+    }
+    await refreshWallet();
   };
 
   const addFastRecall = (text: string, topic: string = 'General Mastery') => {
@@ -426,7 +521,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLibraryItems((prev) => [fullItem, ...prev]);
   };
 
-  const reviewFlashcard = (id: string, rating: 'again' | 'hard' | 'good' | 'easy') => {
+  const reviewFlashcard = async (id: string, rating: 'again' | 'hard' | 'good' | 'easy') => {
+    const ratingMap: Record<string, 1 | 2 | 3 | 4> = {
+      again: 1,
+      hard: 2,
+      good: 3,
+      easy: 4,
+    };
+    const numericRating = ratingMap[rating] || 3;
     setFlashcards((prev) =>
       prev.map((card) => {
         if (card.id === id) {
@@ -441,6 +543,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return card;
       })
     );
+    try {
+      await flashcardsApi.reviewCard(id, numericRating, 2500);
+    } catch {
+      // offline or local card
+    }
+    await refreshWallet();
   };
 
   const toggleSprintTask = (id: string) => {

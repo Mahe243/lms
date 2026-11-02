@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { gameApi } from '../../api/game';
+import { userApi } from '../../api/user';
 
 export const SettingsView: React.FC = () => {
   const {
@@ -25,23 +26,60 @@ export const SettingsView: React.FC = () => {
   const [targetHours, setTargetHours] = useState(user.deepWorkTargetToday);
   const [apiKeyInput, setApiKeyInput] = useState(geminiApiKey);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
-  // Reset Game Progress Modal State
+  // Load authoritative profile on mount
+  useEffect(() => {
+    userApi
+      .getProfile()
+      .then((profile) => {
+        setName(profile.name);
+        const prefs = profile.preferences || {};
+        if (prefs.program) setProgram(prefs.program);
+        if (prefs.target_hours) setTargetHours(prefs.target_hours);
+        if (prefs.ai_api_key) setApiKeyInput(prefs.ai_api_key);
+        updateUser({
+          name: profile.name,
+          program: prefs.program || user.program,
+          deepWorkTargetToday: prefs.target_hours || user.deepWorkTargetToday,
+        });
+      })
+      .catch(() => {});
+  }, []);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetConfirmInput, setResetConfirmInput] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [resetFeedback, setResetFeedback] = useState<string | null>(null);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUser({
-      name,
-      program,
-      deepWorkTargetToday: targetHours,
-    });
-    setGeminiApiKey(apiKeyInput.trim());
-    setSaveStatus('Profile and preferences updated successfully!');
-    setTimeout(() => setSaveStatus(null), 3000);
+    setIsError(false);
+    try {
+      const updated = await userApi.updateProfile({
+        name: name.trim(),
+        preferences: {
+          program: program.trim(),
+          target_hours: targetHours,
+          ai_api_key: apiKeyInput.trim(),
+          theme,
+          sound_enabled: isSoundEnabled,
+          calm_mode: isCalmMode,
+        },
+      });
+
+      updateUser({
+        name: updated.name,
+        program,
+        deepWorkTargetToday: targetHours,
+      });
+      setGeminiApiKey(apiKeyInput.trim());
+      setSaveStatus('Profile and preferences saved to backend database!');
+      setTimeout(() => setSaveStatus(null), 3500);
+    } catch {
+      setIsError(true);
+      setSaveStatus('Failed to save to server. Please check connection.');
+      setTimeout(() => setSaveStatus(null), 4000);
+    }
   };
 
   const handleExportData = () => {
@@ -89,8 +127,12 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {saveStatus && (
-        <div className="p-3.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-code-sm flex items-center gap-2 animate-fadeIn">
-          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+        <div className={`p-3.5 rounded-xl border text-xs font-bold font-code-sm flex items-center gap-2 animate-fadeIn ${
+          isError
+            ? 'bg-red-100 dark:bg-red-950/40 border-red-500/40 text-red-800 dark:text-red-300'
+            : 'bg-emerald-100 dark:bg-emerald-950/40 border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+        }`}>
+          <span className="material-symbols-outlined text-[18px]">{isError ? 'error' : 'check_circle'}</span>
           <span>{saveStatus}</span>
         </div>
       )}

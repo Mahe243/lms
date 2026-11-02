@@ -5,7 +5,7 @@ import { NovaCompanion } from '../kingdom/NovaCompanion';
 import confetti from 'canvas-confetti';
 
 export const ProjectsView: React.FC = () => {
-  const { user, updateUser, refreshWallet } = useApp();
+  const { refreshWallet } = useApp();
   const [activeProject, setActiveProject] = useState<'fintech' | 'uber'>('fintech');
   const [activeTab, setActiveTab] = useState<'prd' | 'python' | 'streamlit' | 'memo'>('python');
 
@@ -67,18 +67,23 @@ export const ProjectsView: React.FC = () => {
           interestRate +
           '% p.a.',
       ]);
-      confetti({ particleCount: 50 });
-      updateUser({ weeklyXP: user.weeklyXP + 60 });
-
       try {
-        await gameApi.recordProjectMilestone({
+        // Deterministic milestone key ensures idempotent grading on backend
+        const milestoneKey = `${activeProject}_architecture_simulation_v1`;
+        const res = await gameApi.recordProjectMilestone({
           project_key: activeProject,
-          milestone_key: `sim_${Date.now()}`,
-          title: 'Ran Underwriting Multi-Agent Simulation',
+          milestone_key: milestoneKey,
+          title: `Ran ${activeProject === 'fintech' ? 'FinTech Credit' : 'Autonomous Fleet'} Underwriting Simulation`,
           summary: `Decision: ${verdict}, Limit: $${maxLimit.toLocaleString()}`,
         });
-        setForgeAward({ xp: 50, coins: 15 });
-        if (refreshWallet) refreshWallet();
+
+        if (res && res.reward && res.reward.success) {
+          setForgeAward({ xp: res.reward.awarded_xp || 60, coins: res.reward.awarded_coins || 30 });
+          confetti({ particleCount: 50 });
+        } else {
+          setForgeAward(null);
+        }
+        if (refreshWallet) await refreshWallet();
       } catch {
         // Fallback
       }
@@ -99,7 +104,7 @@ export const ProjectsView: React.FC = () => {
             </span>
           </div>
           <p className="font-body-sm text-xs text-on-surface-variant dark:text-dark-text-muted mt-0.5">
-            Forge theoretical knowledge into production-grade multi-agent architectures, PRDs, and venture memos.
+            Interactive Architecture Simulator: Test multi-agent credit risk workflows, evaluate DSCR models, and inspect autonomous underwriting pipelines.
           </p>
         </div>
 

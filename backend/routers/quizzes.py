@@ -4,7 +4,8 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
-from backend.models import QuestionBank, Question, QuizAttempt
+from backend.models import QuestionBank, Question, QuizAttempt, User
+from backend.security import get_current_user
 from backend.schemas import (
     QuestionBankCreate, QuestionBankOut,
     QuestionCreate, QuestionOut,
@@ -196,7 +197,7 @@ def check_single_answer(data: CheckSingleAnswerRequest, db: Session = Depends(ge
     }
 
 @router.post("/hint", response_model=SocraticHintOut)
-def get_socratic_hint(data: SocraticHintRequest, db: Session = Depends(get_db)):
+def get_socratic_hint(data: SocraticHintRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """
     Socratic AI hint for Kingdom Trials. Costs 10 coins, validates transaction idempotently.
     """
@@ -210,7 +211,8 @@ def get_socratic_hint(data: SocraticHintRequest, db: Session = Depends(get_db)):
         amount=HINT_COST,
         reason=f"Socratic Hint for question: {q.id[:8]}",
         source_type="hint",
-        source_id=data.question_id
+        source_id=data.question_id,
+        owner_id=user.id
     )
     if not success:
         raise HTTPException(status_code=400, detail=msg)
@@ -228,7 +230,7 @@ def get_socratic_hint(data: SocraticHintRequest, db: Session = Depends(get_db)):
     }
 
 @router.post("/submit", response_model=QuizAttemptOut)
-def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
+def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     # Fetch questions
     q_ids = list(data.responses.keys())
     questions = db.query(Question).filter(Question.id.in_(q_ids)).all() if q_ids else []
@@ -267,8 +269,8 @@ def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
         max_score=max_score,
         percentage=pct,
         time_spent_secs=data.time_spent_secs,
-        questions_snapshot=json.dumps(snapshot),
-        responses=json.dumps(graded_responses),
+        questions_snapshot=json.dumps(snapshot, default=str),
+        responses=json.dumps(graded_responses, default=str),
         completed_at=datetime.now(timezone.utc)
     )
     db.add(attempt)
@@ -276,7 +278,7 @@ def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
     db.refresh(attempt)
 
     # Automatically process game economy rewards
-    process_quiz_completion(db, attempt.id)
+    process_quiz_completion(db, attempt.id, owner_id=user.id)
 
     return {
         "id": attempt.id,

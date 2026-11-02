@@ -21,21 +21,37 @@ export const PracticeArenaView: React.FC = () => {
     timeSpent: number;
   } | null>(null);
 
-  const questions = mockExamData.sections[0].questions;
-  const currentQ = questions[currentQuestionIdx];
+  const [loadedQuestions, setLoadedQuestions] = useState<QuestionResponse[]>([]);
 
-  // Convert mock questions to QuestionResponse format for Trials
-  const trialsQuestions: QuestionResponse[] = questions.map((q) => ({
-    id: `q-${q.id}`,
-    bank_id: 'bank-cs',
-    question_type: 'mcq',
-    question_text: q.text,
-    options: q.options,
-    numerical_tolerance: 0,
-    explanation: q.explanation,
-    difficulty: q.difficulty === 'Challenging' ? 'hard' : q.difficulty === 'Moderate' ? 'medium' : 'easy',
-    tags: [q.topic],
-  }));
+  useEffect(() => {
+    quizzesApi.listQuestions()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setLoadedQuestions(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const fallbackQuestions = mockExamData.sections[0].questions;
+
+  // Use loaded questions if available, else fallback
+  const trialsQuestions: QuestionResponse[] = loadedQuestions.length > 0
+    ? loadedQuestions
+    : fallbackQuestions.map((q) => ({
+        id: `q-${q.id}`,
+        bank_id: 'bank-cs',
+        question_type: 'mcq',
+        question_text: q.text,
+        options: q.options,
+        numerical_tolerance: 0,
+        explanation: q.explanation,
+        difficulty: q.difficulty === 'Challenging' ? 'hard' : q.difficulty === 'Moderate' ? 'medium' : 'easy',
+        tags: [q.topic],
+      }));
+
+  const questions = fallbackQuestions;
+  const currentQ = questions[currentQuestionIdx];
 
   // Exam Timer Countdown
   useEffect(() => {

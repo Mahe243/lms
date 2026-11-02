@@ -1,4 +1,4 @@
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Union
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -283,6 +283,7 @@ class ResourceOut(BaseModel):
     type: str
     url: Optional[str]
     file_path: Optional[str]
+    file_url: Optional[str] = None
     description: str
     author: Optional[str]
     tags: List[str]
@@ -418,7 +419,7 @@ class FlashcardUpdate(BaseModel):
 
 class FlashcardReviewSubmit(BaseModel):
     card_id: str
-    rating: str # again, hard, good, easy
+    rating: Union[str, int]
     review_time_ms: Optional[int] = 0
 
 class FlashcardOut(BaseModel):

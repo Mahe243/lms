@@ -22,6 +22,7 @@ def resource_to_dict(r: Resource) -> dict:
         "type": r.type,
         "url": r.url,
         "file_path": r.file_path,
+        "file_url": f"/uploads/{os.path.basename(r.file_path)}" if r.file_path else r.url,
         "description": r.description,
         "author": r.author,
         "tags": json.loads(r.tags) if r.tags else [],

@@ -1,6 +1,17 @@
-// Base API client with standard fetch wrapper and error handling
+// Base API client with standard fetch wrapper, auth headers, and error handling
 
 export const API_BASE_URL = '';
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('learnova_auth_token');
+}
+
+export function setAuthToken(token: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('learnova_auth_token', token);
+  }
+}
 
 export async function apiRequest<T>(
   endpoint: string,
@@ -8,10 +19,15 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  const headers = {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
+    ...(options.headers as Record<string, string> || {}),
   };
+
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const response = await fetch(url, {
     ...options,

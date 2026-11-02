@@ -68,11 +68,25 @@ export const KingdomTrialsRunner: React.FC<KingdomTrialsRunnerProps> = ({
         setLives((l) => Math.max(0, l - 1));
       }
     } catch {
-      // Local fallback for offline/demo questions
-      const isCorrect = lane === 1; // default to center in demo
-      setFeedback({ isCorrect, explanation: currentQ.explanation || '' });
+      // Honest offline/local evaluation - NEVER fake win on lane 1
+      let isCorrect = false;
+      const qAny = currentQ as any;
+      if (qAny.correct_answer !== undefined && qAny.correct_answer !== null) {
+        isCorrect = String(qAny.correct_answer).trim().toLowerCase() === String(chosenAnswer).trim().toLowerCase();
+      } else if (qAny.correctOptionIndex !== undefined) {
+        isCorrect = qAny.correctOptionIndex === lane;
+      } else {
+        setFeedback({
+          isCorrect: false,
+          explanation: 'Could not connect to the Challenge Arena grading server. Please check your network and try again.',
+        });
+        setIsValidating(false);
+        return;
+      }
+      setFeedback({ isCorrect, explanation: currentQ.explanation || (isCorrect ? 'Correct analysis!' : 'Incorrect choice.') });
       if (isCorrect) {
         setScore((s) => s + 1);
+        confetti({ particleCount: 30, spread: 45, origin: { y: 0.6 } });
       } else {
         setLives((l) => Math.max(0, l - 1));
       }

@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { ClassroomVideoPlayer } from '../classroom/ClassroomVideoPlayer';
+import { coursesApi, type CourseDetailResponse, type TopicResponse } from '../../api/courses';
 import confetti from 'canvas-confetti';
 
 export const ClassroomView: React.FC = () => {
-  const { activeLesson, markLessonComplete, refreshWallet } = useApp();
+  const { activeLesson, setActiveLesson, markLessonComplete, refreshWallet } = useApp();
   const [activeTab, setActiveTab] = useState<'reader' | 'matrix' | 'path' | 'code' | 'notion' | 'quiz'>('reader');
   
-  // Video player simulation state
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState('1.0x');
-  const [videoProgress, setVideoProgress] = useState(45); // percentage
+
 
   // Notes state
   const [notes, setNotes] = useState(() => {
@@ -79,13 +78,42 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     }
   };
 
-  const curriculumNodes = [
-    { id: '1', number: '01', title: 'Vector Quantization & Product Quantizers', status: 'completed', duration: '35m' },
-    { id: '2', number: '02', title: 'Speculative Decoding & KV Cache Paging', status: 'completed', duration: '40m' },
-    { id: '3', number: '03', title: 'Hybrid Search Architecture: BM25 + RRF', status: 'active', duration: '28m' },
-    { id: '4', number: '04', title: 'Cross-Encoder Distillation & FlashRank', status: 'locked', duration: '45m' },
-    { id: '5', number: '05', title: 'Multi-Tenant ACL Partitioning in Milvus', status: 'locked', duration: '50m' },
-  ];
+  const [courseDetail, setCourseDetail] = useState<CourseDetailResponse | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    coursesApi.getCourse(activeLesson.courseId)
+      .then((data) => {
+        if (isMounted) setCourseDetail(data);
+      })
+      .catch(() => {
+        // Fallback gracefully
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [activeLesson.courseId]);
+
+  const allBackendTopics: TopicResponse[] = courseDetail?.modules
+    ? courseDetail.modules.flatMap((m) => m.topics)
+    : [];
+
+  const curriculumNodes = allBackendTopics.length > 0
+    ? allBackendTopics.map((top, idx) => ({
+        id: top.id,
+        number: String(idx + 1).padStart(2, '0'),
+        title: top.title,
+        status: top.id === activeLesson.id ? 'active' : (top.status === 'completed' ? 'completed' : 'locked'),
+        duration: `${top.estimated_minutes || 30}m`,
+        rawTopic: top
+      }))
+    : [
+        { id: '1', number: '01', title: 'Vector Quantization & Product Quantizers', status: 'completed', duration: '35m', rawTopic: null },
+        { id: '2', number: '02', title: 'Speculative Decoding & KV Cache Paging', status: 'completed', duration: '40m', rawTopic: null },
+        { id: '3', number: '03', title: 'Hybrid Search Architecture: BM25 + RRF', status: 'active', duration: '28m', rawTopic: null },
+        { id: '4', number: '04', title: 'Cross-Encoder Distillation & FlashRank', status: 'locked', duration: '45m', rawTopic: null },
+        { id: '5', number: '05', title: 'Multi-Tenant ACL Partitioning in Milvus', status: 'locked', duration: '50m', rawTopic: null },
+      ];
 
   return (
     <div className="relative w-full px-4 sm:px-6 lg:px-8 pt-6 pb-20 flex flex-col gap-6 max-w-7xl mx-auto">
@@ -134,84 +162,23 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Media Player & Content Reader (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-5">
-          {/* Interactive Video Media Player */}
-          <div className="relative rounded-2xl overflow-hidden bg-[#121211] text-white shadow-xl aspect-video flex flex-col justify-between border border-white/10 group">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/60 pointer-events-none"></div>
-
-            {/* Video Canvas Graphic */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="flex flex-col items-center gap-3 text-center px-4">
-                <div className={`w-16 h-16 rounded-full bg-kingdom-violet/90 flex items-center justify-center text-white shadow-xl transition-transform ${isPlaying ? 'scale-90 opacity-40' : 'group-hover:scale-110'}`}>
-                  <span className="material-symbols-outlined text-[36px]">
-                    {isPlaying ? 'pause' : 'play_arrow'}
-                  </span>
-                </div>
-                <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs font-mono text-white/90">
-                  Lecture 03.4: RRF Fusion vs Linear Score Interpolation
-                </div>
-              </div>
-            </div>
-
-            {/* Video Top Overlay */}
-            <div className="relative z-10 p-4 flex items-center justify-between text-xs font-mono text-white/80">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <span>HD 1080p • 60 FPS</span>
-              </div>
-              <span className="bg-white/10 backdrop-blur-sm px-2 py-0.5 rounded">
-                Chapter 3 of 4: Reciprocal Rank Math
-              </span>
-            </div>
-
-            {/* Video Controls Bar */}
-            <div className="relative z-10 p-4 flex flex-col gap-2 bg-gradient-to-t from-black/95 to-transparent">
-              <div 
-                className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer relative overflow-hidden group/bar"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const pos = ((e.clientX - rect.left) / rect.width) * 100;
-                  setVideoProgress(Math.max(0, Math.min(100, pos)));
-                }}
-              >
-                <div 
-                  className="h-full bg-kingdom-violet rounded-full relative transition-all"
-                  style={{ width: `${videoProgress}%` }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md"></div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-white/90">
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="p-1 hover:text-kingdom-violet transition-colors cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[24px]">
-                      {isPlaying ? 'pause' : 'play_arrow'}
-                    </span>
-                  </button>
-                  <span className="font-mono text-xs">
-                    {Math.floor((videoProgress / 100) * 24)}:18 / {activeLesson.duration}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {['1.0x', '1.25x', '1.5x'].map((speed) => (
-                    <button
-                      key={speed}
-                      onClick={() => setPlaybackSpeed(speed)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                        playbackSpeed === speed ? 'bg-kingdom-violet text-white font-bold' : 'bg-white/10 hover:bg-white/20 text-white/80'
-                      }`}
-                    >
-                      {speed}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Real Classroom Video Player */}
+          <ClassroomVideoPlayer
+            videoUrl={activeLesson.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY'}
+            topicId={activeLesson.id}
+            lessonTitle={activeLesson.title}
+            onLessonComplete={async () => {
+              markLessonComplete(activeLesson.id);
+              confetti({ particleCount: 60 });
+              await refreshWallet();
+            }}
+            onTimestampCapture={(secs) => {
+              const m = Math.floor(secs / 60);
+              const s = Math.floor(secs % 60);
+              const stamp = `[${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}] `;
+              handleSaveNotes((notes ? notes + '\n' : '') + `${stamp}Lecture note: `);
+            }}
+          />
 
           {/* Navigation Tabs */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-kingdom-navy-dark p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-x-auto no-scrollbar">
@@ -548,12 +515,31 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               {curriculumNodes.map((item) => (
                 <div
                   key={item.id}
-                  className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                  onClick={() => {
+                    if (item.rawTopic) {
+                      const modTitle = courseDetail?.modules.find((m) => m.id === item.rawTopic?.module_id)?.title || 'Curriculum Module';
+                      setActiveLesson({
+                        id: item.rawTopic.id,
+                        courseId: item.rawTopic.course_id,
+                        title: item.rawTopic.title,
+                        moduleTitle: modTitle,
+                        duration: `${item.rawTopic.estimated_minutes || 30}:00`,
+                        completed: item.rawTopic.status === 'completed',
+                        videoUrl: activeLesson.videoUrl,
+                        keyTakeaways: item.rawTopic.learning_objectives?.length > 0
+                          ? item.rawTopic.learning_objectives
+                          : ['Master core architectural invariants and implementations.'],
+                        markdownContent: item.rawTopic.description || 'Lecture deep-dive reader content.',
+                        quiz: activeLesson.quiz,
+                      });
+                    }
+                  }}
+                  className={`p-2.5 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all ${
                     item.status === 'active'
-                      ? 'bg-kingdom-violet/10 border-kingdom-violet text-kingdom-violet font-bold'
+                      ? 'bg-kingdom-violet/10 border-kingdom-violet text-kingdom-violet font-bold shadow-xs'
                       : item.status === 'completed'
-                      ? 'bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 text-slate-700 dark:text-slate-300'
-                      : 'border-transparent text-slate-400'
+                      ? 'bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                   }`}
                 >
                   <span className="truncate pr-2">{item.number}. {item.title}</span>
