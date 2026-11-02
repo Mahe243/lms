@@ -1,346 +1,362 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
+import { KingdomMap, type KingdomMapData } from '../kingdom/KingdomMap';
+import { gameApi, type DailyMissionResponse } from '../../api/game';
+import confetti from 'canvas-confetti';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, courses, setCurrentPath, setActiveCourseId, setIsFastRecallOpen } = useApp();
+  const {
+    user,
+    activeCourseId,
+    setCurrentPath,
+    isCalmMode,
+    toggleCalmMode,
+    gameWallet,
+    refreshWallet,
+    flashcards,
+  } = useApp();
 
-  const handleResumeCourse = (courseId: string) => {
-    setActiveCourseId(courseId);
+  const [missions, setMissions] = useState<DailyMissionResponse[]>([]);
+  const [kingdomStats, setKingdomStats] = useState<KingdomMapData>({
+    citadelLevel: 1,
+    citadelTier: 1,
+    totalXP: 0,
+    completedLessons: 0,
+    reviewedCards: 0,
+    completedQuizzes: 0,
+    focusMinutes: 0,
+    completedProjects: 0,
+    aiInteractions: 0,
+    earnedAchievements: 0,
+  });
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  // Load backend profile, kingdom metrics, and today's daily missions
+  const loadData = useCallback(async () => {
+    try {
+      const profile = await gameApi.getProfile();
+      if (profile && profile.stats) {
+        setKingdomStats({
+          citadelLevel: profile.stats.citadel_level || 1,
+          citadelTier: profile.stats.citadel_tier || 1,
+          totalXP: profile.wallet.total_xp || 0,
+          completedLessons: profile.stats.completed_lessons || 0,
+          reviewedCards: profile.stats.reviewed_cards || 0,
+          completedQuizzes: profile.stats.completed_quizzes || 0,
+          focusMinutes: profile.stats.focus_minutes || 0,
+          completedProjects: profile.stats.completed_projects || 0,
+          aiInteractions: profile.stats.ai_interactions || 0,
+          earnedAchievements: profile.stats.earned_achievements || 0,
+        });
+        setMissions(profile.missions || []);
+      }
+    } catch {
+      // Fallback to local gameWallet & state if server starting up
+      setKingdomStats((prev) => ({
+        ...prev,
+        citadelLevel: gameWallet.level,
+        totalXP: gameWallet.total_xp,
+      }));
+    }
+  }, [gameWallet.level, gameWallet.total_xp]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Handle claiming a completed daily mission
+  const handleClaimMission = async (missionId: string) => {
+    try {
+      setClaimingId(missionId);
+      await gameApi.claimMission(missionId);
+      confetti({
+        particleCount: 60,
+        spread: 60,
+        origin: { y: 0.7 },
+      });
+      // Refresh wallet & missions
+      await refreshWallet();
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Could not claim mission');
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  // Determine intelligent "CONTINUE LEARNING" target
+  const handleContinueLearning = () => {
+    // 1. Incomplete lesson in active course
+    if (activeCourseId) {
+      setCurrentPath('classroom');
+      return;
+    }
+    // 2. Due flashcards
+    const dueCount = flashcards.filter((f) => f.nextReview === 'Tomorrow' || f.nextReview === 'Due now').length;
+    if (dueCount > 0) {
+      setCurrentPath('my-library');
+      return;
+    }
+    // 3. Fallback to classroom
     setCurrentPath('classroom');
   };
 
+  const isStarterKingdom = kingdomStats.totalXP === 0 && kingdomStats.completedLessons === 0;
+
   return (
-    <div className="relative w-full overflow-hidden px-space-lg lg:px-space-2xl pt-space-lg pb-space-3xl flex flex-col gap-space-2xl">
-      {/* Subtle Ambient Glow Orbs */}
-      <div className="absolute -top-32 -left-20 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none"></div>
-      <div className="absolute top-48 right-0 w-80 h-80 rounded-full bg-secondary-container/10 blur-3xl pointer-events-none"></div>
-
-      {/* SECTION 1: EDITORIAL WELCOME & HERO BANNER */}
-      <section className="relative flex flex-col gap-space-lg">
-        {/* Breadcrumb Metadata / Status Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-space-sm">
-          <div className="flex items-center gap-space-xs">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high dark:bg-dark-surface-2 text-on-surface-variant dark:text-dark-text font-code-sm text-code-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              FOCUS PROTOCOL ACTIVE
-            </span>
-            <span className="text-on-surface-variant font-code-sm text-code-sm">/</span>
-            <span className="text-on-surface-variant dark:text-dark-text-muted font-code-sm text-code-sm uppercase tracking-wider">
-              {user.program} '28
+    <div className="relative w-full px-4 sm:px-6 lg:px-8 pt-6 pb-20 flex flex-col gap-6 max-w-7xl mx-auto">
+      {/* TOP REALM BANNER & CONTROLS */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 dark:border-slate-800 pb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-kingdom-cyan animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              The Evergrowth Kingdom
             </span>
           </div>
-          <div className="flex items-center gap-space-xs font-code-sm text-code-sm text-on-surface-variant dark:text-dark-text-muted">
-            <span>{user.term} • {user.week}</span>
-            <span className="w-1 h-1 rounded-full bg-outline"></span>
-            <span>SYNCED LIVE</span>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white font-serif">
+            Welcome back,{' '}
+            <span className="text-kingdom-violet italic font-semibold">
+              {user.name.split(' ')[0]}
+            </span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Your civilisation flourishes with every concept mastered, chapter read, and focus session completed.
+          </p>
         </div>
 
-        {/* Editorial Typography Greeting */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-md">
-          <div className="max-w-2xl">
-            <p className="font-label-md text-label-md uppercase tracking-widest text-primary dark:text-inverse-primary font-semibold mb-space-2xs">
-              Cognitive Momentum
-            </p>
-            <h1 className="font-headline-lg text-headline-lg lg:font-display-hero lg:text-display-hero text-on-surface dark:text-dark-text tracking-tight leading-none font-serif">
-              Good evening, <span className="italic font-medium text-primary dark:text-inverse-primary">{user.name.split(' ')[0]}.</span>
-            </h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-dark-text-muted mt-space-2xs">
-              Ready to compound your edge across Product, Markets, and Intelligence?
-            </p>
-          </div>
-
-          {/* Quick Action Trigger Pill */}
-          <div className="flex items-center gap-space-xs self-start lg:self-end">
-            <button
-              onClick={() => setIsFastRecallOpen(true)}
-              className="px-space-md py-2 bg-surface-container-highest dark:bg-dark-surface-2 hover:bg-surface-container-high dark:hover:bg-dark-surface transition-all rounded-lg font-label-md text-label-md text-on-surface dark:text-dark-text flex items-center gap-space-xs shadow-sm border border-surface-variant/40 dark:border-dark-border"
-            >
-              <span className="material-symbols-outlined text-space-md text-primary dark:text-inverse-primary">bolt</span>
-              <span>Fast Recall Log</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Vital Performance Metrics Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-space-md pt-space-xs">
-          {/* Metric 1: Streak */}
-          <div 
-            onClick={() => setCurrentPath('goals-and-progress')}
-            className="bg-surface-container-lowest dark:bg-dark-surface p-space-md rounded-xl shadow-sm border border-surface-variant/40 dark:border-dark-border flex flex-col justify-between group hover:shadow-md transition-all cursor-pointer"
+        {/* Action Controls & Mode Switcher */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleCalmMode}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shadow-sm ${
+              isCalmMode
+                ? 'bg-kingdom-emerald text-white border-kingdom-emerald shadow-emerald-500/20'
+                : 'bg-white dark:bg-kingdom-navy-card text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-kingdom-violet'
+            }`}
+            title="Toggle between full Kingdom Map and Calm Academic Mode"
           >
-            <div className="flex items-center justify-between">
-              <span className="font-label-sm text-label-sm text-on-surface-variant dark:text-dark-text-muted uppercase tracking-wider">
-                Discipline
-              </span>
-              <span className="p-1.5 rounded-lg bg-secondary-fixed/50 dark:bg-secondary/30 text-secondary dark:text-secondary-fixed">
-                <span className="material-symbols-outlined text-space-md">local_fire_department</span>
-              </span>
-            </div>
-            <div className="mt-space-md">
-              <div className="flex items-baseline gap-space-2xs">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface dark:text-dark-text">
-                  {user.streakDays}
-                </span>
-                <span className="font-code-sm text-code-sm text-secondary dark:text-secondary-fixed font-medium">
-                  Days Streak
-                </span>
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-                Top {user.streakTopPercent}% cohort velocity
-              </p>
-            </div>
-          </div>
+            <span className="material-symbols-outlined text-[16px]">
+              {isCalmMode ? 'menu_book' : 'castle'}
+            </span>
+            <span>{isCalmMode ? 'Calm Mode Active' : 'Game Mode'}</span>
+          </button>
 
-          {/* Metric 2: Today's Deep Work Goal */}
-          <div 
-            onClick={() => setCurrentPath('study-room')}
-            className="bg-surface-container-lowest dark:bg-dark-surface p-space-md rounded-xl shadow-sm border border-surface-variant/40 dark:border-dark-border flex flex-col justify-between group hover:shadow-md transition-all cursor-pointer"
+          <button
+            onClick={handleContinueLearning}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-kingdom-violet hover:bg-kingdom-violet-light transition-all shadow-md shadow-kingdom-violet/30 flex items-center gap-1.5 active:scale-95"
           >
-            <div className="flex items-center justify-between">
-              <span className="font-label-sm text-label-sm text-on-surface-variant dark:text-dark-text-muted uppercase tracking-wider">
-                Deep Work
-              </span>
-              <span className="p-1.5 rounded-lg bg-tertiary-fixed/60 dark:bg-tertiary/30 text-tertiary dark:text-tertiary-fixed">
-                <span className="material-symbols-outlined text-space-md">schedule</span>
-              </span>
-            </div>
-            <div className="mt-space-md">
-              <div className="flex items-baseline gap-space-2xs">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface dark:text-dark-text">
-                  {user.deepWorkHoursToday}
-                  <span className="text-outline font-normal dark:text-dark-text-muted">/{user.deepWorkTargetToday}</span>
-                </span>
-                <span className="font-code-sm text-code-sm text-tertiary dark:text-tertiary-fixed font-medium">
-                  Hours
-                </span>
-              </div>
-              <div className="w-full bg-surface-container-high dark:bg-dark-surface-2 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-tertiary h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (user.deepWorkHoursToday / user.deepWorkTargetToday) * 100)}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Metric 3: Weekly XP */}
-          <div className="bg-surface-container-lowest dark:bg-dark-surface p-space-md rounded-xl shadow-sm border border-surface-variant/40 dark:border-dark-border flex flex-col justify-between group hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <span className="font-label-sm text-label-sm text-on-surface-variant dark:text-dark-text-muted uppercase tracking-wider">
-                Knowledge Yield
-              </span>
-              <span className="p-1.5 rounded-lg bg-primary-fixed dark:bg-primary/20 text-primary dark:text-inverse-primary">
-                <span className="material-symbols-outlined text-space-md">energy_savings_leaf</span>
-              </span>
-            </div>
-            <div className="mt-space-md">
-              <div className="flex items-baseline gap-space-2xs">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface dark:text-dark-text">
-                  {user.weeklyXP.toLocaleString()}
-                </span>
-                <span className="font-code-sm text-code-sm text-primary dark:text-inverse-primary font-medium">
-                  XP
-                </span>
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-                +18% over last week
-              </p>
-            </div>
-          </div>
-
-          {/* Metric 4: Retained Nodes */}
-          <div className="bg-surface-container-lowest dark:bg-dark-surface p-space-md rounded-xl shadow-sm border border-surface-variant/40 dark:border-dark-border flex flex-col justify-between group hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <span className="font-label-sm text-label-sm text-on-surface-variant dark:text-dark-text-muted uppercase tracking-wider">
-                Retained Nodes
-              </span>
-              <span className="p-1.5 rounded-lg bg-surface-container-highest dark:bg-dark-surface-2 text-on-surface dark:text-dark-text">
-                <span className="material-symbols-outlined text-space-md">fact_check</span>
-              </span>
-            </div>
-            <div className="mt-space-md">
-              <div className="flex items-baseline gap-space-2xs">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface dark:text-dark-text">
-                  {user.retainedNodes}
-                </span>
-                <span className="font-code-sm text-code-sm text-on-surface-variant dark:text-dark-text-muted font-medium">
-                  Modules
-                </span>
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-                94% recall benchmark
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Primary Action Hero Card: Apple Precision meets Academic Gravitas */}
-        <div className="relative bg-gradient-to-br from-[#1c1b19] to-[#282724] text-white rounded-2xl p-space-lg lg:p-space-xl overflow-hidden shadow-xl border border-white/10 mt-space-xs">
-          <div className="absolute -right-16 -bottom-16 w-80 h-80 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
-          <div className="absolute top-0 right-0 p-space-lg opacity-10 pointer-events-none">
-            <span className="material-symbols-outlined text-[160px] leading-none">memory</span>
-          </div>
-
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
-            <div className="max-w-xl flex flex-col gap-space-xs">
-              <div className="flex items-center gap-space-xs">
-                <span className="px-2.5 py-0.5 rounded-full bg-primary text-white font-code-sm text-xs font-semibold uppercase tracking-wider">
-                  Active Sprint
-                </span>
-                <span className="text-white/60 font-code-sm text-xs">CS-742 • Module 03</span>
-              </div>
-              <h2 className="font-headline-md text-2xl lg:text-3xl font-serif font-bold text-white leading-snug">
-                Latency Optimization in Enterprise RAG Pipelines
-              </h2>
-              <p className="font-body-md text-white/80 text-sm line-clamp-2">
-                Hybrid Search Architecture: Blending Keyword Precision with Semantic Context. Unpack BM25 + Reciprocal Rank Fusion at enterprise scale.
-              </p>
-              <div className="flex items-center gap-4 mt-2 text-xs font-code-sm text-white/70">
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px] text-amber-400">schedule</span>
-                  12m remaining
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px] text-emerald-400">task_alt</span>
-                  4 of 6 modules completed (68%)
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-space-sm self-start lg:self-center">
-              <button
-                onClick={() => handleResumeCourse('ai-pm-llm')}
-                className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-container text-white font-label-md text-sm font-bold flex items-center gap-2 shadow-lg hover:shadow-primary/30 transition-all cursor-pointer group"
-              >
-                <span>Resume Learning</span>
-                <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">
-                  arrow_forward
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 2: TODAY'S FOCUS PROTOCOL */}
-      <section className="flex flex-col gap-space-md">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-headline-sm text-xl font-serif font-bold text-on-surface dark:text-dark-text">
-              Today's Focus Protocol
-            </h3>
-            <p className="font-body-sm text-sm text-on-surface-variant dark:text-dark-text-muted">
-              Curated intellectual priorities based on your mastery decay curve and upcoming milestones.
-            </p>
-          </div>
-          <button 
-            onClick={() => setCurrentPath('study-room')}
-            className="font-label-sm text-xs font-bold text-primary dark:text-inverse-primary hover:underline flex items-center gap-1"
-          >
-            <span>Start Deep Focus Block</span>
-            <span className="material-symbols-outlined text-[16px]">timer</span>
+            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+            <span>Continue Learning</span>
           </button>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
-          {courses.slice(1, 4).map((course, idx) => (
+      {/* STARTER ONBOARDING BANNER IF FRESH */}
+      {isStarterKingdom && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-kingdom-violet/10 via-kingdom-cyan/10 to-transparent border border-kingdom-violet/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🌱</span>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Your Evergrowth Outpost has been established!
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Begin your first lecture in the Academy or log 15 minutes of deep work to advance your Knowledge Keep.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCurrentPath('classroom')}
+            className="px-3 py-1.5 rounded-lg bg-kingdom-violet text-white text-xs font-bold whitespace-nowrap"
+          >
+            Start First Lesson &rarr;
+          </button>
+        </div>
+      )}
+
+      {/* HERO SECTION: INTERACTIVE KINGDOM MAP */}
+      <section className="w-full">
+        <KingdomMap
+          data={kingdomStats}
+          onNavigate={(path) => setCurrentPath(path as any)}
+          isCalmMode={isCalmMode}
+        />
+      </section>
+
+      {/* DASHBOARD SUPPORTING CARDS GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* COLUMN 1 & 2: DAILY MISSIONS */}
+        <div className="lg:col-span-2 bg-white dark:bg-kingdom-navy-card rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-kingdom-gold text-[20px]">
+                  flag
+                </span>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Today's Knowledge Missions
+                </h2>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">
+                Refreshes Daily
+              </span>
+            </div>
+
+            {missions.length === 0 ? (
+              <p className="text-xs text-slate-400 py-4 text-center">
+                Generating daily learning objectives...
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {missions.map((m) => {
+                  const pct = Math.min(100, Math.round((m.current_value / m.target_value) * 100));
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                            {m.title}
+                          </h4>
+                          <span className="text-xs font-mono font-semibold text-slate-500">
+                            {m.current_value} / {m.target_value}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                          {m.description}
+                        </p>
+                        {/* Progress Bar */}
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-kingdom-emerald rounded-full transition-all duration-300"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Reward & Claim Pill */}
+                      <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 shrink-0">
+                        <div className="flex items-center gap-2 text-xs font-bold text-kingdom-gold">
+                          <span>+{m.reward_coins} Coins</span>
+                          <span className="text-kingdom-violet">+{m.reward_xp} XP</span>
+                        </div>
+
+                        {m.is_claimed ? (
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-400">
+                            Claimed ✓
+                          </span>
+                        ) : m.is_completed ? (
+                          <button
+                            disabled={claimingId === m.id}
+                            onClick={() => handleClaimMission(m.id)}
+                            className="px-3 py-1 rounded-lg text-xs font-bold bg-kingdom-emerald hover:bg-kingdom-emerald-light text-white shadow-sm transition-all active:scale-95"
+                          >
+                            {claimingId === m.id ? 'Claiming...' : 'Claim Reward'}
+                          </button>
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-400">
+                            In Progress
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* COLUMN 3: REAL LEARNING SUMMARY */}
+        <div className="bg-white dark:bg-kingdom-navy-card rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-xs">
+                Civilisation Metrics
+              </h3>
+              <span className="text-xs font-bold text-kingdom-violet">
+                Level {kingdomStats.citadelLevel}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div
+                onClick={() => setCurrentPath('classroom')}
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 cursor-pointer hover:border-kingdom-cyan transition-all"
+              >
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">
+                  Lessons Done
+                </span>
+                <span className="text-lg font-bold text-slate-900 dark:text-white mt-0.5 block">
+                  {kingdomStats.completedLessons}
+                </span>
+              </div>
+
+              <div
+                onClick={() => setCurrentPath('my-library')}
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 cursor-pointer hover:border-kingdom-gold transition-all"
+              >
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">
+                  Cards Recalled
+                </span>
+                <span className="text-lg font-bold text-slate-900 dark:text-white mt-0.5 block">
+                  {kingdomStats.reviewedCards}
+                </span>
+              </div>
+
+              <div
+                onClick={() => setCurrentPath('study-room')}
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 cursor-pointer hover:border-kingdom-emerald transition-all"
+              >
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">
+                  Focus Logged
+                </span>
+                <span className="text-lg font-bold text-slate-900 dark:text-white mt-0.5 block">
+                  {Math.round(kingdomStats.focusMinutes)}m
+                </span>
+              </div>
+
+              <div
+                onClick={() => setCurrentPath('practice-arena')}
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 cursor-pointer hover:border-kingdom-coral transition-all"
+              >
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">
+                  Quizzes Passed
+                </span>
+                <span className="text-lg font-bold text-slate-900 dark:text-white mt-0.5 block">
+                  {kingdomStats.completedQuizzes}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Link to Kingdom Market */}
             <div
-              key={course.id}
-              onClick={() => handleResumeCourse(course.id)}
-              className="bg-surface-container-lowest dark:bg-dark-surface rounded-xl p-space-md border border-surface-variant/50 dark:border-dark-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
+              onClick={() => setCurrentPath('market')}
+              className="p-3 rounded-xl bg-gradient-to-r from-kingdom-violet/10 to-kingdom-gold/10 border border-kingdom-violet/20 hover:border-kingdom-violet transition-all cursor-pointer flex items-center justify-between group"
             >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className={`text-[11px] font-code-sm font-bold uppercase px-2 py-0.5 rounded-full ${
-                    course.track === 'Finance'
-                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                      : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
-                  }`}>
-                    {course.track} • {course.code}
-                  </span>
-                  <span className="font-code-sm text-xs text-on-surface-variant dark:text-dark-text-muted">
-                    0{idx + 1}
-                  </span>
+              <div className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-kingdom-gold text-[22px]">
+                  storefront
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                    The Kingdom Market
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Customise Citadel & Island skins
+                  </p>
                 </div>
-
-                <h4 className="font-headline-sm text-base font-bold text-on-surface dark:text-dark-text group-hover:text-primary dark:group-hover:text-inverse-primary transition-colors line-clamp-2">
-                  {course.title}
-                </h4>
-
-                <p className="font-body-sm text-xs text-on-surface-variant dark:text-dark-text-muted mt-2 line-clamp-2">
-                  {course.description}
-                </p>
               </div>
-
-              <div className="pt-4 mt-3 border-t border-surface-variant/30 dark:border-dark-border flex items-center justify-between text-xs">
-                <span className="font-code-sm text-on-surface-variant dark:text-dark-text-muted">
-                  {course.timeLeft}
-                </span>
-                <span className="text-primary dark:text-inverse-primary font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
-                  <span>Enter</span>
-                  <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                </span>
-              </div>
+              <span className="text-xs font-bold text-kingdom-violet group-hover:translate-x-1 transition-transform">
+                &rarr;
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* SECTION 3: QUICK CAPSTONE & PRACTICE ARENA ENTRY */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-space-lg">
-        {/* Practice Arena Teaser */}
-        <div 
-          onClick={() => setCurrentPath('practice-arena')}
-          className="bg-surface-container-low dark:bg-dark-surface-2 p-space-lg rounded-xl border border-surface-variant/50 dark:border-dark-border flex flex-col justify-between cursor-pointer hover:border-primary/40 transition-all group"
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-2 text-primary dark:text-inverse-primary">
-              <span className="material-symbols-outlined text-[20px]">fitness_center</span>
-              <span className="font-label-sm text-xs uppercase tracking-wider font-bold">Practice Arena</span>
-            </div>
-            <h3 className="font-headline-sm text-lg font-bold text-on-surface dark:text-dark-text group-hover:text-primary transition-colors">
-              RBI Grade B Phase II — Economic & Social Issues Mock #04
-            </h3>
-            <p className="font-body-sm text-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-              Test your recall on Flexible Inflation Targeting, Black-Scholes Greeks, and distributed consensus mechanisms under exam pressure.
-            </p>
-          </div>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-surface-variant/40 dark:border-dark-border text-xs">
-            <span className="font-code-sm text-on-surface-variant dark:text-dark-text-muted">45 mins • 15 questions</span>
-            <span className="font-bold text-primary dark:text-inverse-primary flex items-center gap-1">
-              Take Diagnostic Test
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </span>
           </div>
         </div>
-
-        {/* Project Capstone Teaser */}
-        <div 
-          onClick={() => setCurrentPath('projects')}
-          className="bg-surface-container-low dark:bg-dark-surface-2 p-space-lg rounded-xl border border-surface-variant/50 dark:border-dark-border flex flex-col justify-between cursor-pointer hover:border-primary/40 transition-all group"
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-2 text-amber-600 dark:text-amber-400">
-              <span className="material-symbols-outlined text-[20px]">assignment</span>
-              <span className="font-label-sm text-xs uppercase tracking-wider font-bold">Capstone Project</span>
-            </div>
-            <h3 className="font-headline-sm text-lg font-bold text-on-surface dark:text-dark-text group-hover:text-amber-600 transition-colors">
-              FinTech Multi-Agent Underwriting & Risk Engine
-            </h3>
-            <p className="font-body-sm text-sm text-on-surface-variant dark:text-dark-text-muted mt-1">
-              Live Python engine sandbox with interactive multi-agent consensus, Cornish-Fisher VaR calculations, and enterprise PRD.
-            </p>
-          </div>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-surface-variant/40 dark:border-dark-border text-xs">
-            <span className="font-code-sm text-emerald-600 dark:text-emerald-400 font-bold">82% Completed • Active Sandbox</span>
-            <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-              Launch Sandbox
-              <span className="material-symbols-outlined text-[16px]">play_arrow</span>
-            </span>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 };
