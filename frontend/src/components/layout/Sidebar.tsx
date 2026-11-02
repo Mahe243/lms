@@ -98,7 +98,7 @@ export const Sidebar: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-500 text-[18px]">local_fire_department</span>
             <span className="text-xs uppercase text-amber-700 dark:text-amber-400 font-bold tracking-wider">
-              {gameWallet.streak_days || user.streakDays || 0}d Streak
+              {(typeof gameWallet.streak_days === 'number' && gameWallet.streak_days > 0) ? gameWallet.streak_days : (user.streakDays || 1)}d Streak
             </span>
           </div>
           <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">

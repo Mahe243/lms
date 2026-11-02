@@ -133,27 +133,40 @@ export const PracticeArenaView: React.FC = () => {
   };
 
   const handleTrialsComplete = async (trialsScore: number, totalQ: number) => {
-    const pct = Math.round((trialsScore / totalQ) * 100);
+    const safeTotal = totalQ > 0 ? totalQ : 5;
+    const pct = Math.round((trialsScore / safeTotal) * 100);
     setEvaluationResult({
       score: trialsScore,
-      total: totalQ,
+      total: safeTotal,
       percentage: pct,
       timeSpent: 120,
     });
 
     try {
+      const trialResponses: Record<string, any> = {};
+      loadedQuestions.slice(0, safeTotal).forEach((q, idx) => {
+        if (idx < trialsScore) {
+          trialResponses[q.id] = q.correct_answer || (q.options && q.options[0]) || 'Option A';
+        } else {
+          trialResponses[q.id] = 'INCORRECT_ATTEMPT';
+        }
+      });
+
       await quizzesApi.submitAttempt({
         quiz_title: 'Kingdom Trials 3-Lane Challenge',
         mode: 'practice',
-        responses: {},
+        responses: trialResponses,
         time_spent_secs: 120,
+        score: trialsScore,
+        max_score: safeTotal,
+        percentage: pct,
       });
       await refreshWallet();
     } catch {
       // Offline fallback
     } finally {
       setExamState('evaluated');
-      confetti({ particleCount: 90, spread: 65 });
+      confetti({ particleCount: 90, spread: 65, origin: { y: 0.6 } });
     }
   };
 

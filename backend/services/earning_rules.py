@@ -252,10 +252,6 @@ def process_lesson_completed(db: Session, topic_id: str, owner_id: str = "learne
     )
 
 def process_flashcard_review(db: Session, card_id: str, rating: str, owner_id: str = "learner") -> Dict[str, Any]:
-    card = db.query(Flashcard).filter(Flashcard.id == card_id).first()
-    if not card:
-        return {"success": False, "reason": "demo_or_not_found"}
-
     # Daily cap 50 reviews, award higher for good/easy (3, 4) than hard/again (1, 2)
     is_mastered = rating in ["good", "easy", 3, 4, "3", "4"]
     xp = 5 if is_mastered else 2
@@ -688,12 +684,36 @@ COSMETIC_CATALOGUE = [
         "preview_accent": "#54CFE0"
     },
     {
+        "item_id": "skin_citadel_obsidian_forge",
+        "name": "Obsidian Architect Spire",
+        "description": "A monolithic volcanic glass tower with pulsating molten golden energy channels.",
+        "item_type": "citadel_skin",
+        "price_coins": 150,
+        "preview_accent": "#F2BD58"
+    },
+    {
         "item_id": "skin_academy_emerald_atrium",
         "name": "Emerald Atrium Academy",
         "description": "Lush hanging gardens and ivy-covered botanical reading spires.",
         "item_type": "academy_skin",
         "price_coins": 80,
         "preview_accent": "#58B995"
+    },
+    {
+        "item_id": "skin_academy_quantum_lecture",
+        "name": "Quantum Glass Lecture Hall",
+        "description": "Futuristic floating holographic study pods and translucent lecture chambers.",
+        "item_type": "academy_skin",
+        "price_coins": 110,
+        "preview_accent": "#6366F1"
+    },
+    {
+        "item_id": "skin_academy_solarium",
+        "name": "Grand Solarium Archive",
+        "description": "Gilded solar observatories and warm brass astronomical armillary spheres.",
+        "item_type": "academy_skin",
+        "price_coins": 95,
+        "preview_accent": "#F59E0B"
     },
     {
         "item_id": "path_crystal_runes",
@@ -704,6 +724,22 @@ COSMETIC_CATALOGUE = [
         "preview_accent": "#FAD387"
     },
     {
+        "item_id": "path_starlight_cobblestone",
+        "name": "Starlight Cobblestone Promenade",
+        "description": "Polished white marble paths reflecting gentle starlight nebulae.",
+        "item_type": "path_style",
+        "price_coins": 50,
+        "preview_accent": "#93C5FD"
+    },
+    {
+        "item_id": "path_bioluminescent_moss",
+        "name": "Bioluminescent Moss Trails",
+        "description": "Soft organic pathways glowing emerald and cyan in evening twilight.",
+        "item_type": "path_style",
+        "price_coins": 65,
+        "preview_accent": "#10B981"
+    },
+    {
         "item_id": "decor_celestial_fountain",
         "name": "Fountain of Continuous Inquiry",
         "description": "A levitating marble basin with shimmering water currents in the central courtyard.",
@@ -712,12 +748,44 @@ COSMETIC_CATALOGUE = [
         "preview_accent": "#85E4F2"
     },
     {
+        "item_id": "decor_lotus_reflection_pond",
+        "name": "Lotus Reflection Waterway",
+        "description": "Tranquil aquatic sanctuary with floating luminous water lilies and koi ripples.",
+        "item_type": "water_feature",
+        "price_coins": 85,
+        "preview_accent": "#EC4899"
+    },
+    {
+        "item_id": "decor_zen_bonsai_grove",
+        "name": "Evergrowth Bonsai Sanctuary",
+        "description": "Ancient miniature knowledge bonsai trees surrounded by calm stone lanterns.",
+        "item_type": "water_feature",
+        "price_coins": 70,
+        "preview_accent": "#84CC16"
+    },
+    {
         "item_id": "nova_golden_halo",
         "name": "Golden Scholar Halo for Nova",
         "description": "A shimmering ring of radiant starlight orbiting your knowledge companion.",
         "item_type": "nova_accessory",
         "price_coins": 50,
         "preview_accent": "#F2BD58"
+    },
+    {
+        "item_id": "nova_astral_wings",
+        "name": "Astral Knowledge Wings",
+        "description": "Ethereal glowing wings allowing Nova to flutter above research papers.",
+        "item_type": "nova_accessory",
+        "price_coins": 75,
+        "preview_accent": "#A855F7"
+    },
+    {
+        "item_id": "nova_cosmic_visor",
+        "name": "Cybernetic Research Visor",
+        "description": "High-tech neon cyan HUD monocle displaying real-time study analytics.",
+        "item_type": "nova_accessory",
+        "price_coins": 60,
+        "preview_accent": "#06B6D4"
     }
 ]
 

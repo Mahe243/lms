@@ -74,6 +74,9 @@ export const quizzesApi = {
     mode: string;
     responses: Record<string, any>;
     time_spent_secs: number;
+    score?: number;
+    max_score?: number;
+    percentage?: number;
   }) =>
     apiRequest<QuizAttemptResponse>('/api/quizzes/submit', {
       method: 'POST',

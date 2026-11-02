@@ -547,7 +547,10 @@ class QuizSubmitRequest(BaseModel):
     quiz_title: str
     mode: str = "practice" # practice or exam
     time_spent_secs: int = 0
-    responses: Dict[str, Any] # question_id -> user answer
+    responses: Dict[str, Any] = {} # question_id -> user answer
+    score: Optional[float] = None
+    max_score: Optional[float] = None
+    percentage: Optional[float] = None
 
 class QuizAttemptOut(BaseModel):
     id: str

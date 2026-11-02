@@ -76,7 +76,7 @@ export const GoalsProgressView: React.FC = () => {
             <span className="material-symbols-outlined text-amber-500 text-[22px]">local_fire_department</span>
             <div>
               <span className="font-code-sm text-sm font-bold text-on-surface dark:text-dark-text block leading-none">
-                {gameWallet.streak_days || user.streakDays} Days
+                {(typeof gameWallet.streak_days === 'number' && gameWallet.streak_days > 0) ? gameWallet.streak_days : (user.streakDays || 1)} Days
               </span>
               <span className="text-[10px] text-on-surface-variant uppercase font-semibold">Active Streak</span>
             </div>

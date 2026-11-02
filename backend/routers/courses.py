@@ -276,7 +276,19 @@ def create_topic(module_id: str, data: TopicCreate, db: Session = Depends(get_db
 def update_topic(topic_id: str, data: TopicUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = db.query(Topic).filter(Topic.id == topic_id).first()
     if not t:
-        raise HTTPException(status_code=404, detail="Topic not found")
+        c = db.query(Course).first()
+        mod = db.query(Module).first()
+        t = Topic(
+            id=topic_id,
+            course_id=c.id if c else None,
+            module_id=mod.id if mod else None,
+            title=data.title or topic_id.replace("lesson-", "").replace("-", " ").title(),
+            description=data.description or "Curriculum Lesson",
+            status=data.status or "completed",
+            estimated_minutes=30
+        )
+        db.add(t)
+        db.flush()
     
     if data.title is not None: t.title = data.title
     if data.description is not None: t.description = data.description
@@ -372,7 +384,18 @@ def record_watch_progress(
 ):
     topic = db.query(Topic).filter(Topic.id == topic_id).first()
     if not topic:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+        c = db.query(Course).first()
+        mod = db.query(Module).first()
+        topic = Topic(
+            id=topic_id,
+            course_id=c.id if c else None,
+            module_id=mod.id if mod else None,
+            title=topic_id.replace("lesson-", "").replace("-", " ").title(),
+            status="in_progress",
+            estimated_minutes=30
+        )
+        db.add(topic)
+        db.flush()
 
     topic.last_studied_at = utc_now()
     if topic.status == "not_started":
@@ -421,7 +444,15 @@ def get_watch_progress(
 ):
     topic = db.query(Topic).filter(Topic.id == topic_id).first()
     if not topic:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+        return {
+            "topic_id": topic_id,
+            "topic_status": "not_started",
+            "resource_id": None,
+            "video_url": None,
+            "file_path": None,
+            "resume_position_secs": 0.0,
+            "completed": False
+        }
     
     resource = db.query(Resource).filter(
         Resource.topic_id == topic_id,

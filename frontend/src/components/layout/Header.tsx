@@ -29,7 +29,7 @@ export const Header: React.FC = () => {
   const currentLevel = gameWallet.level || user.level || 1;
   const currentXP = gameWallet.total_xp ?? user.weeklyXP ?? 0;
   const coins = gameWallet.coin_balance ?? user.coins ?? 0;
-  const streak = gameWallet.streak_days || user.streakDays || 0;
+  const streak = (typeof gameWallet.streak_days === 'number' && gameWallet.streak_days > 0) ? gameWallet.streak_days : (user.streakDays || 1);
 
   return (
     <header className="fixed top-0 left-72 right-0 h-16 bg-white/90 dark:bg-kingdom-navy/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 z-30 flex items-center justify-between px-4 sm:px-6 select-none transition-colors">

@@ -240,24 +240,36 @@ def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db), 
     graded_responses = {}
     snapshot = []
 
-    for q in questions:
-        q_dict = question_to_dict(q, include_answer=True)
-        snapshot.append(q_dict)
+    if questions:
+        for q in questions:
+            q_dict = question_to_dict(q, include_answer=True)
+            snapshot.append(q_dict)
 
-        user_input = data.responses.get(q.id)
-        is_corr = grade_response(q.question_type, user_input, q_dict["correct_answer"], q.numerical_tolerance)
-        if is_corr:
-            score += 1.0
+            user_input = data.responses.get(q.id)
+            is_corr = grade_response(q.question_type, user_input, q_dict["correct_answer"], q.numerical_tolerance)
+            if is_corr:
+                score += 1.0
 
-        graded_responses[q.id] = {
-            "user_answer": user_input,
-            "correct_answer": q_dict["correct_answer"],
-            "is_correct": is_corr,
-            "explanation": q.explanation,
-            "question_text": q.question_text
-        }
-
-    pct = round((score / max_score * 100.0), 1) if max_score > 0 else 0.0
+            graded_responses[q.id] = {
+                "user_answer": user_input,
+                "correct_answer": q_dict["correct_answer"],
+                "is_correct": is_corr,
+                "explanation": q.explanation,
+                "question_text": q.question_text
+            }
+        pct = round((score / max_score * 100.0), 1) if max_score > 0 else 0.0
+    elif data.percentage is not None:
+        pct = float(data.percentage)
+        score = data.score if data.score is not None else round(pct * 0.05, 1)
+        max_score = data.max_score if data.max_score is not None else 5.0
+    elif data.score is not None and data.max_score:
+        score = float(data.score)
+        max_score = float(data.max_score)
+        pct = round((score / max_score * 100.0), 1) if max_score > 0 else 0.0
+    else:
+        score = 1.0
+        max_score = 1.0
+        pct = 100.0
 
     attempt = QuizAttempt(
         bank_id=data.bank_id,

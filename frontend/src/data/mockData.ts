@@ -7,7 +7,7 @@ export const initialUser: UserProfile = {
   cohort: "Class of '28",
   term: 'TERM 2',
   week: 'WEEK 08',
-  streakDays: 42,
+  streakDays: 1,
   streakTopPercent: 1,
   deepWorkHoursToday: 2.5,
   deepWorkTargetToday: 3.0,
@@ -101,6 +101,7 @@ export const currentClassroomLesson: Lesson = {
   moduleTitle: 'Module 03 • Advanced Context Compression & Quantization',
   duration: '24:18',
   completed: false,
+  videoUrl: 'https://www.youtube.com/watch?v=kCc8FmEb1nY',
   keyTakeaways: [
     'Dense vector search often fails on exact alphanumeric tokens (SKUs, legal clauses, ticker symbols, tax codes).',
     'BM25 provides deterministic keyword precision with inverted indexes but suffers from vocabulary mismatch and synonym blindness.',

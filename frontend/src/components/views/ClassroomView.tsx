@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ClassroomVideoPlayer } from '../classroom/ClassroomVideoPlayer';
 import { coursesApi, type CourseDetailResponse, type TopicResponse } from '../../api/courses';
+import { getLessonById } from '../../data/lessonsData';
 import confetti from 'canvas-confetti';
 
 export const ClassroomView: React.FC = () => {
-  const { activeLesson, setActiveLesson, markLessonComplete, refreshWallet } = useApp();
+  const { activeLesson, setActiveLesson, activeVideoUrl, setActiveVideoUrl, markLessonComplete, refreshWallet } = useApp();
   const [activeTab, setActiveTab] = useState<'reader' | 'matrix' | 'path' | 'code' | 'notion' | 'quiz'>('reader');
-  
 
-
-  // Notes state
+  // Notes state - linked to active lesson
+  const currentEnterpriseLesson = getLessonById(activeLesson?.id || 'lesson-hybrid-search');
   const [notes, setNotes] = useState(() => {
-    return localStorage.getItem('learnova_classroom_notes') || 
-      "Key insight: RRF Score(d) = sum(1 / (k + rank)). k=60 prevents top-1 bias.\nTantivy full-text search handles alphanumeric SKUs, while Milvus HNSW handles semantic intent.";
+    return localStorage.getItem(`learnova_classroom_notes_${activeLesson?.id}`) || 
+      currentEnterpriseLesson.notes ||
+      "Key insight: RRF Score(d) = sum(1 / (k + rank)). k=60 prevents top-1 bias.";
   });
   const [noteSaved, setNoteSaved] = useState(false);
 
@@ -26,9 +27,22 @@ export const ClassroomView: React.FC = () => {
   const [codeOutput, setCodeOutput] = useState<string | null>(null);
   const [isRunningCode, setIsRunningCode] = useState(false);
 
+  // Update notes and quiz when active lesson changes
+  useEffect(() => {
+    const l = getLessonById(activeLesson?.id || 'lesson-hybrid-search');
+    const saved = localStorage.getItem(`learnova_classroom_notes_${l.id}`);
+    setNotes(saved || l.notes);
+    setSelectedAnswers({});
+    setQuizSubmitted(false);
+    setQuizScore(null);
+    setCodeOutput(null);
+  }, [activeLesson?.id]);
+
   const handleSaveNotes = (val: string) => {
     setNotes(val);
-    localStorage.setItem('learnova_classroom_notes', val);
+    if (activeLesson?.id) {
+      localStorage.setItem(`learnova_classroom_notes_${activeLesson.id}`, val);
+    }
     setNoteSaved(true);
     setTimeout(() => setNoteSaved(false), 2000);
   };
@@ -38,7 +52,33 @@ export const ClassroomView: React.FC = () => {
     setCodeOutput(null);
     setTimeout(() => {
       setIsRunningCode(false);
-      setCodeOutput(`[RRF Pipeline Initialized: k=60]
+      if (activeLesson?.id === 'lesson-vq') {
+        setCodeOutput(`[Product Quantizer Pipeline: M=64, K=256]
+Input vector: 1536-dim float32 (6,144 bytes)
+Quantized codebook indices: 64 bytes (98.9% memory reduction)
+ADC Lookup table computed in 0.14ms. Top-10 distance summation: 0.08ms
+✓ Voronoi index search verified.`);
+      } else if (activeLesson?.id === 'lesson-speculative') {
+        setCodeOutput(`[vLLM Speculative Decoding Engine: Draft 8B -> Target 70B]
+Draft batch gamma=4 candidate tokens emitted in 8.2ms.
+Target model parallel verification pass: [Token 1: OK (p=0.94), Token 2: OK (p=0.88), Token 3: OK (p=0.82), Token 4: REJECT]
+Speedup multiplier: 2.64x over standard autoregressive decoding.
+PagedAttention virtual blocks allocated: 128 frames (zero internal fragmentation).`);
+      } else if (activeLesson?.id === 'lesson-cross-encoder') {
+        setCodeOutput(`[FlashRank MiniLM Distilled Reranker]
+Input: 100 Bi-Encoder candidate passages.
+Scoring (Query [SEP] Passage) with joint cross-attention...
+P95 Reranking latency: 11.4ms across 100 passages on CPU.
+Top candidate: Passage #42 (Relevance score: 0.9482)
+✓ Top 5 passages routed to generation context window.`);
+      } else if (activeLesson?.id === 'lesson-multi-tenant') {
+        setCodeOutput(`[Milvus Multi-Tenant Partition Router]
+JWT Context: tenant_id='org_enterprise_42', role='admin'
+Target collection: 'enterprise_vault' -> routing to Partition 'part_org_42'
+Physical shard scan restricted to Segment #904 (foreign tenants skipped: 84)
+Zero cross-tenant leakage verified. Query latency: 4.8ms.`);
+      } else {
+        setCodeOutput(`[RRF Pipeline Initialized: k=60]
 Processing 4 dense vector candidates and 4 BM25 lexical candidates...
 ----------------------------------------------------------------------
 Rank 1: doc_42  | RRF Score: 0.032520 (Dense #1 [0.01639] + Lexical #2 [0.01613])
@@ -49,7 +89,8 @@ Rank 5: doc_55  | RRF Score: 0.015873 (Lexical #3 [0.01587])
 ----------------------------------------------------------------------
 ✓ Top candidate "doc_42" successfully routed to Cross-Encoder reranker.
 Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
-    }, 600);
+      }
+    }, 500);
   };
 
   const handleSelectAnswer = (qIndex: number, optionIndex: number) => {
@@ -57,9 +98,11 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     setSelectedAnswers((prev) => ({ ...prev, [qIndex]: optionIndex }));
   };
 
+  const currentQuiz = currentEnterpriseLesson.quiz || activeLesson?.quiz || [];
+
   const handleSubmitQuiz = async () => {
     let score = 0;
-    activeLesson.quiz.forEach((q, idx) => {
+    currentQuiz.forEach((q, idx) => {
       if (selectedAnswers[idx] === q.correctIndex) {
         score += 1;
       }
@@ -67,7 +110,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     setQuizScore(score);
     setQuizSubmitted(true);
 
-    if (score === activeLesson.quiz.length) {
+    if (score === currentQuiz.length) {
       confetti({
         particleCount: 80,
         spread: 60,
@@ -82,7 +125,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
 
   useEffect(() => {
     let isMounted = true;
-    coursesApi.getCourse(activeLesson.courseId)
+    coursesApi.getCourse(activeLesson?.courseId || 'ai-pm-llm')
       .then((data) => {
         if (isMounted) setCourseDetail(data);
       })
@@ -92,28 +135,46 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     return () => {
       isMounted = false;
     };
-  }, [activeLesson.courseId]);
+  }, [activeLesson?.courseId]);
 
   const allBackendTopics: TopicResponse[] = courseDetail?.modules
     ? courseDetail.modules.flatMap((m) => m.topics)
     : [];
 
-  const curriculumNodes = allBackendTopics.length > 0
-    ? allBackendTopics.map((top, idx) => ({
-        id: top.id,
-        number: String(idx + 1).padStart(2, '0'),
-        title: top.title,
-        status: top.id === activeLesson.id ? 'active' : (top.status === 'completed' ? 'completed' : 'locked'),
-        duration: `${top.estimated_minutes || 30}m`,
-        rawTopic: top
-      }))
-    : [
-        { id: '1', number: '01', title: 'Vector Quantization & Product Quantizers', status: 'completed', duration: '35m', rawTopic: null },
-        { id: '2', number: '02', title: 'Speculative Decoding & KV Cache Paging', status: 'completed', duration: '40m', rawTopic: null },
-        { id: '3', number: '03', title: 'Hybrid Search Architecture: BM25 + RRF', status: 'active', duration: '28m', rawTopic: null },
-        { id: '4', number: '04', title: 'Cross-Encoder Distillation & FlashRank', status: 'locked', duration: '45m', rawTopic: null },
-        { id: '5', number: '05', title: 'Multi-Tenant ACL Partitioning in Milvus', status: 'locked', duration: '50m', rawTopic: null },
-      ];
+  const DEFAULT_SYLLABUS = [
+    { id: 'lesson-vq', number: '01', title: 'Vector Quantization & Product Quantizers', defaultStatus: 'completed' as const, duration: '35m' },
+    { id: 'lesson-speculative', number: '02', title: 'Speculative Decoding & KV Cache Paging', defaultStatus: 'completed' as const, duration: '40m' },
+    { id: 'lesson-hybrid-search', number: '03', title: 'Hybrid Search Architecture: BM25 + RRF', defaultStatus: 'in_progress' as const, duration: '28m' },
+    { id: 'lesson-cross-encoder', number: '04', title: 'Cross-Encoder Distillation & FlashRank', defaultStatus: 'not_started' as const, duration: '45m' },
+    { id: 'lesson-multi-tenant', number: '05', title: 'Multi-Tenant ACL Partitioning in Milvus', defaultStatus: 'not_started' as const, duration: '50m' },
+  ];
+
+  const curriculumNodes = DEFAULT_SYLLABUS.map((item) => {
+    const backendTopic = allBackendTopics.find(
+      (t) => t.id === item.id || t.title.toLowerCase().includes(item.title.toLowerCase().slice(0, 15))
+    );
+    const isCurrentActive = (activeLesson?.id === item.id) || 
+      (activeLesson?.title && activeLesson.title.toLowerCase().includes(item.title.toLowerCase().slice(0, 15)));
+    const isCompleted = backendTopic?.status === 'completed' || 
+      (isCurrentActive && activeLesson?.completed);
+
+    return {
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      status: isCurrentActive ? 'active' : (isCompleted ? 'completed' : 'unlocked'),
+      duration: item.duration,
+      rawTopic: backendTopic || null,
+    };
+  });
+
+  const handleSelectLesson = (lessonId: string) => {
+    const target = getLessonById(lessonId);
+    setActiveLesson(target);
+    setActiveVideoUrl(target.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY');
+  };
+
+  const effectiveVideoUrl = activeLesson?.videoUrl || activeVideoUrl || currentEnterpriseLesson.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY';
 
   return (
     <div className="relative w-full px-4 sm:px-6 lg:px-8 pt-6 pb-20 flex flex-col gap-6 max-w-7xl mx-auto">
@@ -124,10 +185,10 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
           <span>/</span>
           <span>Enterprise RAG Pipelines</span>
           <span>/</span>
-          <span className="text-slate-800 dark:text-slate-200 font-bold">{activeLesson.moduleTitle}</span>
+          <span className="text-slate-800 dark:text-slate-200 font-bold">{currentEnterpriseLesson.moduleTitle}</span>
         </div>
         <div className="flex items-center gap-2">
-          {activeLesson.completed ? (
+          {activeLesson?.completed ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono">
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
               MASTERED (+50 XP, +25 Coins)
@@ -151,10 +212,10 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
       {/* Lesson Title & Lead */}
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl sm:text-3xl font-serif font-extrabold text-slate-900 dark:text-white tracking-tight">
-          {activeLesson.title}
+          {currentEnterpriseLesson.title}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          Master the integration of lexical inverted indexes (BM25) with dense vector representations (HNSW) to overcome semantic blind spots at enterprise scale.
+          {currentEnterpriseLesson.lead}
         </p>
       </div>
 
@@ -162,11 +223,11 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Media Player & Content Reader (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-5">
-          {/* Real Classroom Video Player */}
+          {/* Real Classroom Video Player with Direct Switching */}
           <ClassroomVideoPlayer
-            videoUrl={activeLesson.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY'}
-            topicId={activeLesson.id}
-            lessonTitle={activeLesson.title}
+            videoUrl={effectiveVideoUrl}
+            topicId={activeLesson?.id || 'lesson-hybrid-search'}
+            lessonTitle={currentEnterpriseLesson.title}
             onLessonComplete={async () => {
               markLessonComplete(activeLesson.id);
               confetti({ particleCount: 60 });
@@ -224,7 +285,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">terminal</span>
-              <span>RRF Python Engine</span>
+              <span>Code Simulator</span>
             </button>
             <button
               onClick={() => setActiveTab('notion')}
@@ -260,7 +321,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                   Core Architectural Invariants
                 </h3>
                 <ul className="flex flex-col gap-2">
-                  {activeLesson.keyTakeaways.map((point, idx) => (
+                  {currentEnterpriseLesson.keyTakeaways.map((point, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
                       <span className="w-1.5 h-1.5 rounded-full bg-kingdom-violet mt-1.5 shrink-0" />
                       <span>{point}</span>
@@ -270,23 +331,8 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               </div>
 
               {/* Formatted Markdown Content */}
-              <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-xs sm:text-sm leading-relaxed">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white font-serif">
-                  1. The Inadequacy of Pure Dense Vector Retrieval
-                </h3>
-                <p>
-                  While approximate nearest-neighbor algorithms (like HNSW or ScaNN) capture semantic concepts with remarkable fidelity, they suffer from catastrophic failure modes when queries contain alphanumeric part numbers, legal clause citations, or domain-specific identifiers.
-                </p>
-
-                <h3 className="text-base font-bold text-slate-900 dark:text-white font-serif">
-                  2. Reciprocal Rank Fusion (RRF) Formulation
-                </h3>
-                <p>
-                  Instead of normalizing distances from two completely different mathematical spaces, RRF uses only the ordinal rank of each document:
-                </p>
-                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-900 font-mono text-xs text-slate-800 dark:text-slate-200 overflow-x-auto border border-slate-200 dark:border-slate-800">
-                  RRF_Score(d) = Σ [ 1 / (k + rank_m(d)) ]  where k = 60
-                </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-sans">
+                {currentEnterpriseLesson.markdownContent}
               </div>
             </div>
           )}
@@ -304,21 +350,22 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                   </p>
                 </div>
                 <span className="text-xs font-mono font-bold text-kingdom-violet px-2.5 py-1 rounded-full bg-kingdom-violet/10">
-                  2 / 5 Nodes Completed
+                  {curriculumNodes.filter((n) => n.status === 'completed').length} / {curriculumNodes.length} Nodes Mastered
                 </span>
               </div>
 
               {/* Connected Visual Pathway */}
-              <div className="relative flex flex-col gap-4 py-2">
+              <div className="relative flex flex-col gap-3 py-2">
                 {curriculumNodes.map((node) => (
                   <div
                     key={node.id}
-                    className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                    onClick={() => handleSelectLesson(node.id)}
+                    className={`p-3.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
                       node.status === 'completed'
-                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40'
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 hover:border-emerald-400'
                         : node.status === 'active'
                         ? 'bg-kingdom-violet/5 border-kingdom-violet/40 shadow-xs ring-1 ring-kingdom-violet/20'
-                        : 'bg-slate-50/60 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800 opacity-60'
+                        : 'bg-slate-50/60 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800 hover:border-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -391,16 +438,22 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                     <td className="py-3">Requires two indexing systems in tandem</td>
                     <td className="py-3 font-bold text-kingdom-emerald">Enterprise Multi-Tenant Knowledge Hubs</td>
                   </tr>
+                  <tr>
+                    <td className="py-3 font-bold text-indigo-500">Cross-Encoder (FlashRank)</td>
+                    <td className="py-3">True token-level cross-attention, eliminates semantic drift</td>
+                    <td className="py-3">Higher compute cost per passage pair</td>
+                    <td className="py-3">Stage-2 candidate distillation before LLM prompt</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
           )}
 
-          {/* TAB 4: RRF PYTHON ENGINE */}
+          {/* TAB 4: CODE SIMULATOR */}
           {activeTab === 'code' && (
             <div className="bg-white dark:bg-kingdom-navy-card rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold text-slate-500">rrf_pipeline.py</span>
+                <span className="text-xs font-mono font-bold text-slate-500">{currentEnterpriseLesson.codeSnippet?.description || 'simulator.py'}</span>
                 <button
                   onClick={handleRunCode}
                   disabled={isRunningCode}
@@ -412,12 +465,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               </div>
 
               <div className="p-4 rounded-xl bg-slate-950 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed border border-slate-800">
-                <pre>{`def reciprocal_rank_fusion(ranked_lists: list[list[str]], k: int = 60) -> dict:
-    scores = {}
-    for r_list in ranked_lists:
-        for rank, doc_id in enumerate(r_list, start=1):
-            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
-    return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))`}</pre>
+                <pre>{currentEnterpriseLesson.codeSnippet?.code || `# Code simulation for ${currentEnterpriseLesson.title}`}</pre>
               </div>
 
               {codeOutput && (
@@ -432,13 +480,17 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
           {activeTab === 'notion' && (
             <div className="bg-white dark:bg-kingdom-navy-card rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col gap-4">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Production Failure Mode: The Notion Workspace Incident
+                Production Failure Mode & Architecture Review
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                When Notion initially replaced their PostgreSQL full-text search with a pure dense vector system in 2023, customer support tickets exploded by 430%. Users searching for exact document IDs (e.g. "PRD-2023-Q4") were returned unrelated engineering strategy docs because cosine similarity between alphanumeric tokens was essentially random.
+                When enterprise knowledge systems rely solely on a single uncalibrated retrieval method, subtle corner cases cascade into high-severity outages:
               </p>
-              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 text-xs text-amber-900 dark:text-amber-300">
-                <strong>Resolution:</strong> Restoring Tantivy BM25 alongside Milvus vector search with an RRF merger eliminated 100% of the identifier recall failures while preserving conceptual queries.
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 text-xs text-amber-900 dark:text-amber-300 space-y-2">
+                <p><strong>Incident A (Alphanumeric Blindness):</strong> Pure vector search fails on queries with exact version IDs (e.g., &quot;v4.12.0-rc2&quot;) because cosine distance between hashes is non-discriminative.</p>
+                <p><strong>Incident B (KV Memory Exhaustion):</strong> Autoregressive engines without PagedAttention drop 65% of concurrent requests under burst traffic due to continuous VRAM memory fragmentation.</p>
+              </div>
+              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-xs text-emerald-900 dark:text-emerald-300">
+                <strong>Architectural Invariant:</strong> Combine multi-stage retrieval (BM25 + HNSW + Cross-Encoder) with virtual page allocation to guarantee sub-30ms P99 latency and zero cross-tenant contamination.
               </div>
             </div>
           )}
@@ -452,13 +504,13 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                 </h3>
                 {quizSubmitted && (
                   <span className="text-xs font-bold text-emerald-600 font-mono">
-                    Score: {quizScore} / {activeLesson.quiz.length}
+                    Score: {quizScore} / {currentQuiz.length}
                   </span>
                 )}
               </div>
 
               <div className="flex flex-col gap-5">
-                {activeLesson.quiz.map((q, qIdx) => (
+                {currentQuiz.map((q, qIdx) => (
                   <div key={qIdx} className="p-4 rounded-xl bg-slate-50 dark:bg-kingdom-navy-dark border border-slate-200/60 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-900 dark:text-white mb-3">
                       {qIdx + 1}. {q.question}
@@ -488,6 +540,11 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                         );
                       })}
                     </div>
+                    {quizSubmitted && q.explanation && (
+                      <p className="mt-2.5 text-[11px] text-slate-500 dark:text-slate-400 italic">
+                        {q.explanation}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -515,31 +572,13 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               {curriculumNodes.map((item) => (
                 <div
                   key={item.id}
-                  onClick={() => {
-                    if (item.rawTopic) {
-                      const modTitle = courseDetail?.modules.find((m) => m.id === item.rawTopic?.module_id)?.title || 'Curriculum Module';
-                      setActiveLesson({
-                        id: item.rawTopic.id,
-                        courseId: item.rawTopic.course_id,
-                        title: item.rawTopic.title,
-                        moduleTitle: modTitle,
-                        duration: `${item.rawTopic.estimated_minutes || 30}:00`,
-                        completed: item.rawTopic.status === 'completed',
-                        videoUrl: activeLesson.videoUrl,
-                        keyTakeaways: item.rawTopic.learning_objectives?.length > 0
-                          ? item.rawTopic.learning_objectives
-                          : ['Master core architectural invariants and implementations.'],
-                        markdownContent: item.rawTopic.description || 'Lecture deep-dive reader content.',
-                        quiz: activeLesson.quiz,
-                      });
-                    }
-                  }}
+                  onClick={() => handleSelectLesson(item.id)}
                   className={`p-2.5 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all ${
                     item.status === 'active'
-                      ? 'bg-kingdom-violet/10 border-kingdom-violet text-kingdom-violet font-bold shadow-xs'
+                      ? 'bg-kingdom-violet/10 border-kingdom-violet text-kingdom-violet font-bold shadow-xs ring-1 ring-kingdom-violet/20'
                       : item.status === 'completed'
                       ? 'bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                      : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                      : 'border-slate-100 dark:border-slate-800/60 text-slate-600 dark:text-slate-400 hover:border-slate-300'
                   }`}
                 >
                   <span className="truncate pr-2">{item.number}. {item.title}</span>
@@ -548,7 +587,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
                   ) : item.status === 'active' ? (
                     <span className="w-2 h-2 rounded-full bg-kingdom-violet animate-pulse"></span>
                   ) : (
-                    <span className="material-symbols-outlined text-[15px]">lock</span>
+                    <span className="text-[11px] font-mono text-slate-400">{item.duration}</span>
                   )}
                 </div>
               ))}

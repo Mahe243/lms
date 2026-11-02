@@ -387,13 +387,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await fetch('/api/game/wallet');
       if (res.ok) {
         const data = await res.json();
-        setGameWallet(data);
+        setGameWallet((prev) => ({
+          ...data,
+          total_xp: Math.max(data.total_xp, prev.total_xp),
+          coin_balance: Math.max(data.coin_balance, prev.coin_balance),
+          level: Math.max(data.level, prev.level),
+        }));
         setUser((prev) => ({
           ...prev,
-          weeklyXP: data.total_xp,
-          level: data.level,
-          coins: data.coin_balance,
-          streakDays: data.streak_days || prev.streakDays,
+          weeklyXP: Math.max(data.total_xp, prev.weeklyXP || 0),
+          level: Math.max(data.level, prev.level || 1),
+          coins: Math.max(data.coin_balance, prev.coins || 0),
+          streakDays: (typeof data.streak_days === 'number' && data.streak_days > 0) ? data.streak_days : (prev.streakDays || 1),
         }));
       }
     } catch {
@@ -482,6 +487,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markLessonComplete = async (lessonId: string) => {
     setActiveLesson((prev) => ({ ...prev, completed: true }));
+    setGameWallet((prev) => {
+      const newXp = prev.total_xp + 50;
+      const newCoins = prev.coin_balance + 25;
+      const newLevel = Math.max(1, Math.floor(newXp / 100) + 1);
+      return {
+        ...prev,
+        total_xp: newXp,
+        coin_balance: newCoins,
+        level: newLevel,
+        current_level_xp: newXp % 100,
+        next_level_xp: 100,
+      };
+    });
+    setUser((prev) => ({
+      ...prev,
+      weeklyXP: (prev.weeklyXP || 0) + 50,
+      coins: (prev.coins || 0) + 25,
+    }));
     try {
       await coursesApi.updateTopicStatus(lessonId, 'completed');
     } catch {
@@ -550,6 +573,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return card;
       })
     );
+    setGameWallet((prev) => {
+      const newXp = prev.total_xp + 5;
+      const newCoins = prev.coin_balance + 2;
+      const newLevel = Math.max(1, Math.floor(newXp / 100) + 1);
+      return {
+        ...prev,
+        total_xp: newXp,
+        coin_balance: newCoins,
+        level: newLevel,
+        current_level_xp: newXp % 100,
+        next_level_xp: 100,
+      };
+    });
+    setUser((prev) => ({
+      ...prev,
+      weeklyXP: (prev.weeklyXP || 0) + 5,
+      coins: (prev.coins || 0) + 2,
+    }));
     try {
       await flashcardsApi.reviewCard(id, numericRating, 2500);
     } catch {
