@@ -280,7 +280,11 @@ def update_topic(topic_id: str, data: TopicUpdate, db: Session = Depends(get_db)
     if data.description is not None: t.description = data.description
     if data.learning_objectives is not None: t.learning_objectives = json.dumps(data.learning_objectives)
     if data.estimated_minutes is not None: t.estimated_minutes = data.estimated_minutes
-    if data.status is not None: t.status = data.status
+    if data.status is not None:
+        t.status = data.status
+        if data.status == "completed":
+            from backend.services.earning_rules import process_lesson_completed
+            process_lesson_completed(db, topic_id)
     if data.understanding_level is not None: t.understanding_level = data.understanding_level
     if data.is_optional is not None: t.is_optional = data.is_optional
     if data.order_index is not None: t.order_index = data.order_index

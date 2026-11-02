@@ -234,6 +234,8 @@ def review_flashcard(data: FlashcardReviewSubmit, db: Session = Depends(get_db))
 
     db.commit()
     db.refresh(fc)
+    from backend.services.earning_rules import process_flashcard_review
+    process_flashcard_review(db, fc.id, data.rating)
 
     return {
         "status": "success",

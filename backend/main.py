@@ -11,7 +11,7 @@ from backend.routers import (
     auth, courses, notes, resources, comments, ai_tutor,
     flashcards, quizzes, active_learning, study_sessions,
     activity, planner, tasks, revision, goals, journal,
-    search, notifications, backup
+    search, notifications, backup, game
 )
 
 @asynccontextmanager
@@ -67,6 +67,7 @@ app.include_router(journal.router)
 app.include_router(search.router)
 app.include_router(notifications.router)
 app.include_router(backup.router)
+app.include_router(game.router)
 
 @app.get("/health")
 def health_check():

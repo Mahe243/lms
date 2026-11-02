@@ -1,8 +1,32 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { NavigationPath, UserProfile, Course, Lesson, LibraryItem, Flashcard, FastRecallEntry } from '../types';
-import { initialUser, coursesData, currentClassroomLesson, libraryItemsData, flashcardsData } from '../data/mockData';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type {
+  NavigationPath,
+  UserProfile,
+  Course,
+  Lesson,
+  LibraryItem,
+  Flashcard,
+  FastRecallEntry,
+} from '../types';
+import {
+  initialUser,
+  coursesData,
+  currentClassroomLesson,
+  libraryItemsData,
+  flashcardsData,
+} from '../data/mockData';
 import { soundscapeEngine } from '../utils/soundscapes';
 import type { SoundscapeType } from '../utils/soundscapes';
+
+export interface GameWalletState {
+  coin_balance: number;
+  total_xp: number;
+  level: number;
+  next_level_xp: number;
+  current_level_xp: number;
+  streak_days: number;
+  total_active_days: number;
+}
 
 interface AppContextType {
   currentPath: NavigationPath;
@@ -13,8 +37,13 @@ interface AppContextType {
   activeCourseId: string;
   setActiveCourseId: (id: string) => void;
   activeLesson: Lesson;
+  setActiveLesson: (lesson: Lesson) => void;
   markLessonComplete: (lessonId: string) => void;
-  
+
+  // Video State
+  activeVideoUrl: string;
+  setActiveVideoUrl: (url: string) => void;
+
   // Timer State
   timerSeconds: number;
   timerRunning: boolean;
@@ -22,12 +51,23 @@ interface AppContextType {
   setTimerMode: (mode: 'pomodoro' | 'deep_work' | 'flow') => void;
   toggleTimer: () => void;
   resetTimer: () => void;
-  
-  // Audio State
+
+  // Audio State (Default Sound is OFF)
+  isSoundEnabled: boolean;
+  toggleSound: () => void;
   activeSoundscape: SoundscapeType;
   setSoundscape: (type: SoundscapeType) => void;
   soundscapeVolume: number;
   setSoundscapeVolume: (vol: number) => void;
+
+  // Game & Calm Mode
+  isCalmMode: boolean;
+  toggleCalmMode: () => void;
+  reducedMotion: boolean;
+
+  // Game Wallet & Real Stats
+  gameWallet: GameWalletState;
+  refreshWallet: () => Promise<void>;
 
   // Fast Recall Log
   fastRecalls: FastRecallEntry[];
@@ -36,6 +76,7 @@ interface AppContextType {
   // Library & Flashcards
   libraryItems: LibraryItem[];
   toggleBookmark: (id: string) => void;
+  addLibraryItem: (item: Partial<LibraryItem>) => void;
   flashcards: Flashcard[];
   reviewFlashcard: (id: string, rating: 'again' | 'hard' | 'good' | 'easy') => void;
 
@@ -44,6 +85,8 @@ interface AppContextType {
   setIsCommandPaletteOpen: (open: boolean) => void;
   isFastRecallOpen: boolean;
   setIsFastRecallOpen: (open: boolean) => void;
+  isUploadModalOpen: boolean;
+  setIsUploadModalOpen: (open: boolean) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   geminiApiKey: string;
@@ -71,33 +114,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [courses] = useState<Course[]>(coursesData);
   const [activeCourseId, setActiveCourseId] = useState<string>('ai-pm-llm');
   const [activeLesson, setActiveLesson] = useState<Lesson>(currentClassroomLesson);
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string>(
+    currentClassroomLesson.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY'
+  );
 
   // Focus Timer
   const [timerSeconds, setTimerSeconds] = useState<number>(25 * 60);
   const [timerRunning, setTimerRunning] = useState<boolean>(false);
   const [timerMode, setTimerModeState] = useState<'pomodoro' | 'deep_work' | 'flow'>('pomodoro');
 
-  // Soundscape
+  // Sound Preferences (OFF by default)
+  const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`${STORAGE_KEY}_sound_enabled`);
+    return saved ? JSON.parse(saved) : false;
+  });
   const [activeSoundscape, setActiveSoundscape] = useState<SoundscapeType>('none');
   const [soundscapeVolume, setSoundscapeVolumeState] = useState<number>(0.4);
+
+  // Game & Calm Mode
+  const [isCalmMode, setIsCalmMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`${STORAGE_KEY}_calm_mode`);
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // System Reduced Motion Preference
+  const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  });
+
+  // Game Wallet & Real Stats
+  const [gameWallet, setGameWallet] = useState<GameWalletState>({
+    coin_balance: 0,
+    total_xp: 0,
+    level: 1,
+    next_level_xp: 100,
+    current_level_xp: 0,
+    streak_days: 0,
+    total_active_days: 0,
+  });
 
   // Fast Recall
   const [fastRecalls, setFastRecalls] = useState<FastRecallEntry[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_recalls`);
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'rec-1',
-        text: 'BM25 + Dense vector Reciprocal Rank Fusion avoids calibration issues across arbitrary distance metrics.',
-        topic: 'AI Systems',
-        timestamp: 'Today at 18:30',
-      },
-      {
-        id: 'rec-2',
-        text: 'Short gamma near expiry creates asymptotic pin risk for market makers forcing pro-cyclical hedging.',
-        topic: 'Quant Finance',
-        timestamp: 'Yesterday at 21:15',
-      },
-    ];
+    return saved
+      ? JSON.parse(saved)
+      : [
+          {
+            id: 'rec-1',
+            text: 'BM25 + Dense vector Reciprocal Rank Fusion avoids calibration issues across arbitrary distance metrics.',
+            topic: 'AI Systems',
+            timestamp: 'Today at 18:30',
+          },
+          {
+            id: 'rec-2',
+            text: 'Short gamma near expiry creates asymptotic pin risk for market makers forcing pro-cyclical hedging.',
+            topic: 'Quant Finance',
+            timestamp: 'Yesterday at 21:15',
+          },
+        ];
   });
 
   // Library & Flashcards
@@ -120,17 +197,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ]);
 
   const [thoughtNotes, setThoughtNotes] = useState<string>(() => {
-    return localStorage.getItem(`${STORAGE_KEY}_thought_notes`) || 
-      "- Investigate whether SPLADE v3 can be quantized with INT8 on ONNX Runtime.\n- Check if RBI changed SLR requirements in latest MPC meeting minutes.\n- Follow up on Stanford Guest Lecture regarding speculative decoding.";
+    return (
+      localStorage.getItem(`${STORAGE_KEY}_thought_notes`) ||
+      '- Investigate whether SPLADE v3 can be quantized with INT8 on ONNX Runtime.\n- Check if RBI changed SLR requirements in latest MPC meeting minutes.\n- Follow up on Stanford Guest Lecture regarding speculative decoding.'
+    );
   });
 
   // UI Modals
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isFastRecallOpen, setIsFastRecallOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
     return localStorage.getItem(`${STORAGE_KEY}_gemini_key`) || '';
   });
+
+  // Detect and listen to system prefers-reduced-motion changes
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setReducedMotion(e.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // Sync reduced-motion class on documentElement
+  useEffect(() => {
+    if (reducedMotion || isCalmMode) {
+      document.documentElement.classList.add('reduced-motion');
+    } else {
+      document.documentElement.classList.remove('reduced-motion');
+    }
+  }, [reducedMotion, isCalmMode]);
+
+  // Sync calm-mode class on documentElement
+  useEffect(() => {
+    if (isCalmMode) {
+      document.documentElement.classList.add('calm-mode');
+    } else {
+      document.documentElement.classList.remove('calm-mode');
+    }
+    localStorage.setItem(`${STORAGE_KEY}_calm_mode`, JSON.stringify(isCalmMode));
+  }, [isCalmMode]);
+
+  // Persist sound preference
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}_sound_enabled`, JSON.stringify(isSoundEnabled));
+    if (!isSoundEnabled) {
+      soundscapeEngine.stop();
+      setActiveSoundscape('none');
+    }
+  }, [isSoundEnabled]);
 
   // Save to LocalStorage
   useEffect(() => {
@@ -166,6 +285,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [theme]);
 
+  // Fetch real game wallet & stats from backend
+  const refreshWallet = useCallback(async () => {
+    try {
+      const res = await fetch('/api/game/wallet');
+      if (res.ok) {
+        const data = await res.json();
+        setGameWallet(data);
+        setUser((prev) => ({
+          ...prev,
+          weeklyXP: data.total_xp,
+          level: data.level,
+          coins: data.coin_balance,
+          streakDays: data.streak_days || prev.streakDays,
+        }));
+      }
+    } catch {
+      // Backend not yet available or offline; keep deterministic local values
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshWallet();
+  }, [refreshWallet]);
+
   // Global Keyboard shortcuts (⌘K or Ctrl+K for command palette)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -180,18 +323,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Timer Tick
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (timerRunning && timerSeconds > 0) {
       interval = setInterval(() => {
         setTimerSeconds((prev) => {
           if (prev <= 1) {
             setTimerRunning(false);
-            // Award XP on timer completion
-            setUser((u) => ({
-              ...u,
-              weeklyXP: u.weeklyXP + 50,
-              deepWorkHoursToday: Number((u.deepWorkHoursToday + 0.4).toFixed(1)),
-            }));
             return 0;
           }
           return prev - 1;
@@ -220,14 +357,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     else setTimerSeconds(90 * 60);
   };
 
+  const toggleSound = () => {
+    setIsSoundEnabled((prev) => !prev);
+  };
+
   const setSoundscape = (type: SoundscapeType) => {
+    if (!isSoundEnabled && type !== 'none') {
+      setIsSoundEnabled(true);
+    }
     setActiveSoundscape(type);
-    soundscapeEngine.play(type);
+    if (isSoundEnabled || type === 'none') {
+      soundscapeEngine.play(type);
+    }
   };
 
   const setSoundscapeVolume = (vol: number) => {
     setSoundscapeVolumeState(vol);
     soundscapeEngine.setVolume(vol);
+  };
+
+  const toggleCalmMode = () => {
+    setIsCalmMode((prev) => !prev);
   };
 
   const updateUser = (updates: Partial<UserProfile>) => {
@@ -236,10 +386,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markLessonComplete = (_lessonId: string) => {
     setActiveLesson((prev) => ({ ...prev, completed: true }));
-    updateUser({
-      weeklyXP: user.weeklyXP + 120,
-      retainedNodes: user.retainedNodes + 1,
-    });
   };
 
   const addFastRecall = (text: string, topic: string = 'General Mastery') => {
@@ -250,13 +396,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: 'Just now',
     };
     setFastRecalls((prev) => [newEntry, ...prev]);
-    updateUser({ weeklyXP: user.weeklyXP + 25 });
   };
 
   const toggleBookmark = (id: string) => {
     setLibraryItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, bookmarked: !item.bookmarked } : item))
     );
+  };
+
+  const addLibraryItem = (newItem: Partial<LibraryItem>) => {
+    const fullItem: LibraryItem = {
+      id: `lib-${Date.now()}`,
+      title: newItem.title || 'Untitled Document',
+      author: newItem.author || user.name,
+      year: newItem.year || '2026',
+      category: newItem.category || 'Lecture Note',
+      tags: newItem.tags && newItem.tags.length > 0 ? newItem.tags : ['Study Material'],
+      readTime: newItem.readTime || '15m',
+      progress: 0,
+      rating: 5,
+      summary: newItem.summary || 'Uploaded learning artifact saved in Second Brain vault.',
+      citation: newItem.citation || `${newItem.author || user.name} (2026). ${newItem.title}.`,
+      bookmarked: true,
+      fileUrl: newItem.fileUrl,
+      fileType: newItem.fileType,
+      fileSize: newItem.fileSize,
+      fullNotes: newItem.fullNotes,
+    };
+    setLibraryItems((prev) => [fullItem, ...prev]);
   };
 
   const reviewFlashcard = (id: string, rating: 'again' | 'hard' | 'good' | 'easy') => {
@@ -274,7 +441,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return card;
       })
     );
-    updateUser({ weeklyXP: user.weeklyXP + (rating === 'again' ? 5 : 20) });
   };
 
   const toggleSprintTask = (id: string) => {
@@ -285,7 +451,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addSprintTask = (text: string) => {
     if (!text.trim()) return;
-    setSprintTasks((prev) => [...prev, { id: `task-${Date.now()}`, text: text.trim(), done: false }]);
+    setSprintTasks((prev) => [
+      ...prev,
+      { id: `task-${Date.now()}`, text: text.trim(), done: false },
+    ]);
   };
 
   const toggleTheme = () => {
@@ -303,27 +472,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeCourseId,
         setActiveCourseId,
         activeLesson,
+        setActiveLesson,
         markLessonComplete,
+        activeVideoUrl,
+        setActiveVideoUrl,
         timerSeconds,
         timerRunning,
         timerMode,
         setTimerMode,
         toggleTimer,
         resetTimer,
+        isSoundEnabled,
+        toggleSound,
         activeSoundscape,
         setSoundscape,
         soundscapeVolume,
         setSoundscapeVolume,
+        isCalmMode,
+        toggleCalmMode,
+        reducedMotion,
+        gameWallet,
+        refreshWallet,
         fastRecalls,
         addFastRecall,
         libraryItems,
         toggleBookmark,
+        addLibraryItem,
         flashcards,
         reviewFlashcard,
         isCommandPaletteOpen,
         setIsCommandPaletteOpen,
         isFastRecallOpen,
         setIsFastRecallOpen,
+        isUploadModalOpen,
+        setIsUploadModalOpen,
         theme,
         toggleTheme,
         geminiApiKey,

@@ -4,6 +4,8 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { QuickRecallModal } from './components/layout/QuickRecallModal';
+import { UploadModal } from './components/layout/UploadModal';
+import { StudyBotWidget } from './components/layout/StudyBotWidget';
 import { HomeDashboard } from './components/views/HomeDashboard';
 import { ClassroomView } from './components/views/ClassroomView';
 import { AITutorView } from './components/views/AITutorView';
@@ -13,6 +15,7 @@ import { ProjectsView } from './components/views/ProjectsView';
 import { LibraryView } from './components/views/LibraryView';
 import { GoalsProgressView } from './components/views/GoalsProgressView';
 import { SettingsView } from './components/views/SettingsView';
+import { MarketView } from './components/views/MarketView';
 
 const MainLayout: React.FC = () => {
   const { currentPath } = useApp();
@@ -36,6 +39,8 @@ const MainLayout: React.FC = () => {
         return <LibraryView />;
       case 'goals-and-progress':
         return <GoalsProgressView />;
+      case 'market':
+        return <MarketView />;
       case 'settings':
         return <SettingsView />;
       default:
@@ -59,9 +64,11 @@ const MainLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Global Modals */}
+      {/* Global Interactive Modals */}
       <CommandPalette />
       <QuickRecallModal />
+      <UploadModal />
+      <StudyBotWidget />
     </div>
   );
 };

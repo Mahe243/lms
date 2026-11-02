@@ -481,7 +481,7 @@ class QuestionCreate(BaseModel):
     question_type: Optional[str] = "mcq" # mcq, multi_select, true_false, short_answer, numerical, matching, ordering, long_answer
     question_text: str
     options: Optional[List[str]] = []
-    correct_answer: Any # string or list or number
+    correct_answer: Optional[Any] = None # string or list or number
     numerical_tolerance: Optional[float] = 0.0
     numerical_unit: Optional[str] = None
     matching_pairs: Optional[List[Dict[str, str]]] = []
@@ -834,3 +834,106 @@ class NotificationOut(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
+# -------------------------------------------------------------
+# EVERGROWTH KINGDOM & GAME ECONOMY SCHEMAS
+# -------------------------------------------------------------
+
+class GameWalletOut(BaseModel):
+    id: str
+    coin_balance: int
+    total_xp: int
+    level: int
+    next_level_xp: int
+    current_level_xp: int
+    streak_days: int
+    total_active_days: int
+    class Config:
+        from_attributes = True
+
+class GameTransactionOut(BaseModel):
+    id: str
+    transaction_type: str
+    amount: int
+    currency: str
+    reason: str
+    source_type: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class KingdomBuildingOut(BaseModel):
+    building_type: str
+    building_level: int
+    current_progress: float
+    next_milestone: str
+    custom_skin: str
+    class Config:
+        from_attributes = True
+
+class DailyMissionOut(BaseModel):
+    id: str
+    mission_date: str
+    mission_type: str
+    title: str
+    description: str
+    target_value: int
+    current_value: int
+    reward_coins: int
+    reward_xp: int
+    is_completed: bool
+    is_claimed: bool
+    class Config:
+        from_attributes = True
+
+class GameAchievementOut(BaseModel):
+    id: str
+    achievement_type: str
+    title: str
+    description: str
+    badge_icon: str
+    reward_coins: int
+    reward_xp: int
+    unlocked_at: datetime
+    class Config:
+        from_attributes = True
+
+class CosmeticItemOut(BaseModel):
+    item_id: str
+    name: str
+    description: str
+    item_type: str
+    price_coins: int
+    is_unlocked: bool
+    is_equipped: bool
+    preview_accent: str
+
+class PurchaseRequest(BaseModel):
+    item_id: str
+
+class EquipRequest(BaseModel):
+    item_id: str
+
+class SocraticHintRequest(BaseModel):
+    question_id: str
+    current_attempt: Optional[str] = None
+
+class SocraticHintOut(BaseModel):
+    hint: str
+    cost_coins: int
+    remaining_coins: int
+
+class CheckSingleAnswerRequest(BaseModel):
+    question_id: str
+    selected_option: Any
+
+class CheckSingleAnswerOut(BaseModel):
+    is_correct: bool
+    explanation: str
+
+class GameProfileOut(BaseModel):
+    wallet: GameWalletOut
+    buildings: List[KingdomBuildingOut]
+    missions: List[DailyMissionOut]
+    achievements: List[GameAchievementOut]
+    equipped_cosmetics: List[str]

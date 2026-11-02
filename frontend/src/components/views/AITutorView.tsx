@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { NovaCompanion } from '../kingdom/NovaCompanion';
 import type { ChatMessage } from '../../types';
 import { initialChatMessages } from '../../data/mockData';
 
@@ -153,21 +154,21 @@ From a systems and financial perspective, consider the primary trade-offs:
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md border-b border-surface-variant/40 dark:border-dark-border pb-space-md">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg">
-            <span className="material-symbols-outlined text-[28px]">neurology</span>
+          <div className="flex items-center justify-center">
+            <NovaCompanion expression="thinking" size="md" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-headline-sm text-2xl font-serif font-bold text-on-surface dark:text-dark-text">
-                Professor Nova
+                The Observatory of Wisdom
               </h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-code-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                ACTIVE INTELLECT
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-kingdom-violet/15 text-kingdom-violet text-xs font-bold font-code-sm border border-kingdom-violet/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-kingdom-violet animate-pulse"></span>
+                PROFESSOR NOVA ACTIVE
               </span>
             </div>
-            <p className="font-body-sm text-xs text-on-surface-variant dark:text-dark-text-muted">
-              Personalized 1:1 Cognitive Sparring Partner & Domain Specialist
+            <p className="font-body-sm text-xs text-on-surface-variant dark:text-dark-text-muted mt-0.5">
+              Personalized 1:1 Cognitive Sparring Partner, Socratic reasoning engine, and domain specialist.
             </p>
           </div>
         </div>

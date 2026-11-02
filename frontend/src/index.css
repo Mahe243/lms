@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -13,11 +13,12 @@
     overscroll-behavior: none;
     background-color: #fdf8f5;
     color: #1c1b19;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
 
   .dark body {
-    background-color: #141413;
-    color: #f5f3ef;
+    background-color: #0d1224;
+    color: #f5f7fc;
   }
 }
 
@@ -52,11 +53,82 @@
   -webkit-backdrop-filter: blur(16px);
 }
 .dark .glass-panel {
-  background: rgba(30, 30, 30, 0.85);
+  background: rgba(24, 33, 59, 0.88);
 }
 
 /* KaTeX / math styles */
 .math-display {
   font-family: 'JetBrains Mono', monospace;
   letter-spacing: -0.01em;
+}
+
+/* Knowledge Kingdom Animations */
+@keyframes kingdomFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes kingdomGlow {
+  0%, 100% {
+    opacity: 0.35;
+    filter: drop-shadow(0 0 6px rgba(120, 105, 222, 0.3));
+  }
+  50% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 14px rgba(84, 207, 224, 0.6));
+  }
+}
+
+@keyframes kingdomPulseSoft {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.animate-kingdom-float {
+  animation: kingdomFloat 4s ease-in-out infinite;
+}
+
+.animate-kingdom-glow {
+  animation: kingdomGlow 3s ease-in-out infinite;
+}
+
+.animate-kingdom-pulse {
+  animation: kingdomPulseSoft 2.5s ease-in-out infinite;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-kingdom-float,
+  .animate-kingdom-glow,
+  .animate-kingdom-pulse,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
+}
+
+.reduced-motion *, 
+.reduced-motion ::before, 
+.reduced-motion ::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+.calm-mode .kingdom-scenery {
+  display: none !important;
 }

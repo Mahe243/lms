@@ -8,12 +8,19 @@ from backend.models import QuestionBank, Question, QuizAttempt
 from backend.schemas import (
     QuestionBankCreate, QuestionBankOut,
     QuestionCreate, QuestionOut,
-    QuizSubmitRequest, QuizAttemptOut
+    QuizSubmitRequest, QuizAttemptOut,
+    CheckSingleAnswerRequest, CheckSingleAnswerOut,
+    SocraticHintRequest, SocraticHintOut
 )
+from backend.services.earning_rules import process_quiz_completion, spend_coins, get_or_create_wallet
 
 router = APIRouter(prefix="/api/quizzes", tags=["Quizzes & Practice"])
 
-def question_to_dict(q: Question) -> dict:
+def question_to_dict(q: Question, include_answer: bool = False) -> dict:
+    parsed_answer = json.loads(q.correct_answer) if q.correct_answer and (
+        q.correct_answer.startswith("[") or q.correct_answer.startswith("{") or q.correct_answer.startswith('"')
+    ) else q.correct_answer
+
     return {
         "id": q.id,
         "bank_id": q.bank_id,
@@ -22,12 +29,13 @@ def question_to_dict(q: Question) -> dict:
         "question_type": q.question_type,
         "question_text": q.question_text,
         "options": json.loads(q.options) if q.options else [],
-        "correct_answer": json.loads(q.correct_answer) if q.correct_answer and (q.correct_answer.startswith("[") or q.correct_answer.startswith("{") or q.correct_answer.startswith('"')) else q.correct_answer,
+        # Security: Never leak correct_answer to client prior to authoritative grading
+        "correct_answer": parsed_answer if include_answer else None,
         "numerical_tolerance": q.numerical_tolerance,
         "numerical_unit": q.numerical_unit,
         "matching_pairs": json.loads(q.matching_pairs) if q.matching_pairs else [],
         "order_items": json.loads(q.order_items) if q.order_items else [],
-        "explanation": q.explanation,
+        "explanation": q.explanation if include_answer else "",
         "source_ref": q.source_ref,
         "difficulty": q.difficulty,
         "tags": json.loads(q.tags) if q.tags else [],
@@ -88,6 +96,7 @@ def list_questions(
     topic_id: Optional[str] = None,
     difficulty: Optional[str] = None,
     drafts_only: bool = False,
+    include_answers: bool = False,
     db: Session = Depends(get_db)
 ):
     query = db.query(Question)
@@ -97,7 +106,7 @@ def list_questions(
     if difficulty: query = query.filter(Question.difficulty == difficulty)
     query = query.filter(Question.is_draft == drafts_only)
     questions = query.all()
-    return [question_to_dict(q) for q in questions]
+    return [question_to_dict(q, include_answer=include_answers) for q in questions]
 
 @router.post("/questions", response_model=QuestionOut)
 def create_question(data: QuestionCreate, db: Session = Depends(get_db)):
@@ -124,19 +133,9 @@ def create_question(data: QuestionCreate, db: Session = Depends(get_db)):
     db.add(q)
     db.commit()
     db.refresh(q)
-    return question_to_dict(q)
-
-@router.delete("/questions/{question_id}")
-def delete_question(question_id: str, db: Session = Depends(get_db)):
-    q = db.query(Question).filter(Question.id == question_id).first()
-    if not q:
-        raise HTTPException(status_code=404, detail="Question not found")
-    db.delete(q)
-    db.commit()
-    return {"message": "Question deleted successfully"}
+    return question_to_dict(q, include_answer=True)
 
 def grade_response(q_type: str, user_ans: Any, correct_ans: Any, tolerance: float = 0.0) -> bool:
-    """Rigorous objective grading logic."""
     if user_ans is None:
         return False
 
@@ -144,9 +143,11 @@ def grade_response(q_type: str, user_ans: Any, correct_ans: Any, tolerance: floa
         return str(user_ans).strip().lower() == str(correct_ans).strip().lower()
 
     elif q_type == "multi_select":
-        u_set = set(str(x).strip().lower() for x in (user_ans if isinstance(user_ans, list) else [user_ans]))
-        c_set = set(str(x).strip().lower() for x in (correct_ans if isinstance(correct_ans, list) else [correct_ans]))
-        return u_set == c_set
+        if isinstance(user_ans, list) and isinstance(correct_ans, list):
+            u_clean = sorted(str(x).strip().lower() for x in user_ans)
+            c_clean = sorted(str(x).strip().lower() for x in correct_ans)
+            return u_clean == c_clean
+        return False
 
     elif q_type == "short_answer":
         return str(user_ans).strip().lower() == str(correct_ans).strip().lower()
@@ -166,15 +167,65 @@ def grade_response(q_type: str, user_ans: Any, correct_ans: Any, tolerance: floa
 
     elif q_type == "matching":
         if isinstance(user_ans, list) and isinstance(correct_ans, list):
-            # check all pairs match
             return sorted(str(p) for p in user_ans) == sorted(str(p) for p in correct_ans)
         return False
 
     elif q_type == "long_answer":
-        # Handled via user self-assessment score passed in payload
         return bool(user_ans.get("self_assessed_correct", True)) if isinstance(user_ans, dict) else True
 
     return False
+
+@router.post("/check-single", response_model=CheckSingleAnswerOut)
+def check_single_answer(data: CheckSingleAnswerRequest, db: Session = Depends(get_db)):
+    """
+    Secure server-side single question grader for Kingdom Trials.
+    Validates without revealing the whole question bank.
+    """
+    q = db.query(Question).filter(Question.id == data.question_id).first()
+    if not q:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    correct_ans = json.loads(q.correct_answer) if q.correct_answer and (
+        q.correct_answer.startswith("[") or q.correct_answer.startswith("{") or q.correct_answer.startswith('"')
+    ) else q.correct_answer
+
+    is_corr = grade_response(q.question_type, data.selected_option, correct_ans, q.numerical_tolerance)
+    return {
+        "is_correct": is_corr,
+        "explanation": q.explanation or ""
+    }
+
+@router.post("/hint", response_model=SocraticHintOut)
+def get_socratic_hint(data: SocraticHintRequest, db: Session = Depends(get_db)):
+    """
+    Socratic AI hint for Kingdom Trials. Costs 10 coins, validates transaction idempotently.
+    """
+    q = db.query(Question).filter(Question.id == data.question_id).first()
+    if not q:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    HINT_COST = 10
+    success, msg, wallet = spend_coins(
+        db=db,
+        amount=HINT_COST,
+        reason=f"Socratic Hint for question: {q.id[:8]}",
+        source_type="hint",
+        source_id=data.question_id
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+
+    # Provide conceptual socratic guidance based on explanation or topic
+    topic_hint = f"Focus on the underlying principle of {q.difficulty} level {q.question_type.upper()} questions."
+    if q.explanation:
+        first_clause = q.explanation.split('.')[0]
+        topic_hint = f"Consider: {first_clause}."
+
+    return {
+        "hint": topic_hint,
+        "cost_coins": HINT_COST,
+        "remaining_coins": wallet.coin_balance
+    }
 
 @router.post("/submit", response_model=QuizAttemptOut)
 def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
@@ -188,7 +239,7 @@ def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
     snapshot = []
 
     for q in questions:
-        q_dict = question_to_dict(q)
+        q_dict = question_to_dict(q, include_answer=True)
         snapshot.append(q_dict)
 
         user_input = data.responses.get(q.id)
@@ -223,6 +274,9 @@ def submit_quiz_attempt(data: QuizSubmitRequest, db: Session = Depends(get_db)):
     db.add(attempt)
     db.commit()
     db.refresh(attempt)
+
+    # Automatically process game economy rewards
+    process_quiz_completion(db, attempt.id)
 
     return {
         "id": attempt.id,
@@ -271,9 +325,6 @@ def list_attempts(course_id: Optional[str] = None, db: Session = Depends(get_db)
 
 @router.get("/mistake-log")
 def get_mistake_log(course_id: Optional[str] = None, db: Session = Depends(get_db)):
-    """
-    Returns unique questions the user has answered incorrectly in past quiz attempts.
-    """
     query = db.query(QuizAttempt)
     if course_id:
         query = query.filter(QuizAttempt.course_id == course_id)
