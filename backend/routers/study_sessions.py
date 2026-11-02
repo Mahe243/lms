@@ -3,7 +3,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
-from backend.models import StudySession
+from backend.models import StudySession, User
+from backend.security import get_current_user
 from backend.schemas import StudySessionStart, StudySessionUpdate, StudySessionOut
 
 router = APIRouter(prefix="/api/study-sessions", tags=["Study Sessions & Timers"])
@@ -48,7 +49,7 @@ def start_session(data: StudySessionStart, db: Session = Depends(get_db)):
     return new_sess
 
 @router.put("/{session_id}", response_model=StudySessionOut)
-def update_session(session_id: str, data: StudySessionUpdate, db: Session = Depends(get_db)):
+def update_session(session_id: str, data: StudySessionUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     sess = db.query(StudySession).filter(StudySession.id == session_id).first()
     if not sess:
         raise HTTPException(status_code=404, detail="Study session not found")
@@ -61,7 +62,7 @@ def update_session(session_id: str, data: StudySessionUpdate, db: Session = Depe
             sess.end_time = datetime.now(timezone.utc)
         if data.status == "completed":
             from backend.services.earning_rules import process_study_session_completion
-            process_study_session_completion(db, session_id)
+            process_study_session_completion(db, session_id, owner_id=user.id)
     if data.reflection_completed is not None: sess.reflection_completed = data.reflection_completed
     if data.reflection_unclear is not None: sess.reflection_unclear = data.reflection_unclear
     if data.reflection_confidence is not None: sess.reflection_confidence = data.reflection_confidence

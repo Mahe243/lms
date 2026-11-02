@@ -51,6 +51,25 @@ export interface CourseDetailResponse {
   progress?: CourseProgressResponse;
 }
 
+export interface WatchProgressResponse {
+  status: string;
+  topic_id: string;
+  position_secs: number;
+  topic_status: string;
+  resource_status?: string;
+  reward?: any;
+}
+
+export interface WatchStateResponse {
+  topic_id: string;
+  topic_status: string;
+  resource_id?: string;
+  video_url?: string;
+  file_path?: string;
+  resume_position_secs: number;
+  completed: boolean;
+}
+
 export const coursesApi = {
   listCourses: () => apiRequest<CourseDetailResponse[]>('/api/courses'),
   getCourse: (courseId: string) => apiRequest<CourseDetailResponse>(`/api/courses/${courseId}`),
@@ -59,4 +78,14 @@ export const coursesApi = {
       method: 'PUT',
       body: JSON.stringify({ status }),
     }),
+  recordWatchProgress: (
+    topicId: string,
+    data: { position_secs: number; duration_secs?: number; resource_id?: string; completed?: boolean }
+  ) =>
+    apiRequest<WatchProgressResponse>(`/api/courses/topics/${topicId}/watch-progress`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getWatchProgress: (topicId: string) =>
+    apiRequest<WatchStateResponse>(`/api/courses/topics/${topicId}/watch-progress`),
 };

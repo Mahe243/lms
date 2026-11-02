@@ -32,6 +32,20 @@ export const StudyRoomView: React.FC = () => {
   const [completedAward, setCompletedAward] = useState<{ xp: number; coins: number } | null>(null);
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Restore running session on mount if one is already active
+  useEffect(() => {
+    studySessionsApi.getActiveSession()
+      .then((sess) => {
+        if (sess && (sess.status === 'running' || sess.status === 'paused')) {
+          setBackendSessionId(sess.id);
+          const startMs = new Date(sess.start_time).getTime();
+          const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+          setSessionElapsedSecs(elapsed);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -79,10 +93,18 @@ export const StudyRoomView: React.FC = () => {
     try {
       await studySessionsApi.updateSession(backendSessionId, {
         status: 'completed',
-        actual_duration_secs: Math.max(sessionElapsedSecs, 900), // Ensure eligible for completion rewards
+        actual_duration_secs: sessionElapsedSecs,
         session_notes: thoughtNotes,
       });
-      setCompletedAward({ xp: 30, coins: 10 });
+      const durationMins = Math.floor(sessionElapsedSecs / 60);
+      if (durationMins >= 15) {
+        const cappedMins = Math.min(durationMins, 90);
+        const xpEarned = Math.floor(cappedMins * 1.5);
+        const coinsEarned = Math.floor(cappedMins * 0.5);
+        setCompletedAward({ xp: xpEarned, coins: coinsEarned });
+      } else {
+        setCompletedAward(null);
+      }
       if (refreshWallet) refreshWallet();
     } catch {
       // Offline fallback

@@ -237,10 +237,8 @@ def process_lesson_completed(db: Session, topic_id: str, owner_id: str = "learne
     if not topic:
         return {"success": False, "reason": "topic_not_found"}
 
-    # Never award rewards for demo topics or already completed topics
+    # Verify topic exists and award idempotently
     course = db.query(Course).filter(Course.id == topic.course_id).first()
-    if course and course.is_demo:
-        return {"success": False, "reason": "demo_item"}
 
     return award_rewards(
         db=db,
@@ -255,12 +253,13 @@ def process_lesson_completed(db: Session, topic_id: str, owner_id: str = "learne
 
 def process_flashcard_review(db: Session, card_id: str, rating: str, owner_id: str = "learner") -> Dict[str, Any]:
     card = db.query(Flashcard).filter(Flashcard.id == card_id).first()
-    if not card or card.is_demo:
+    if not card:
         return {"success": False, "reason": "demo_or_not_found"}
 
-    # Daily cap 50 reviews, only award for good, easy, or hard (not spamming again)
-    xp = 5 if rating in ["good", "easy"] else 2
-    coins = 2 if rating in ["good", "easy"] else 1
+    # Daily cap 50 reviews, award higher for good/easy (3, 4) than hard/again (1, 2)
+    is_mastered = rating in ["good", "easy", 3, 4, "3", "4"]
+    xp = 5 if is_mastered else 2
+    coins = 2 if is_mastered else 1
     review_stamp = f"{card_id}_{utc_now().strftime('%Y-%m-%d_%H')}"
 
     return award_rewards(
@@ -276,7 +275,7 @@ def process_flashcard_review(db: Session, card_id: str, rating: str, owner_id: s
 
 def process_quiz_completion(db: Session, attempt_id: str, owner_id: str = "learner") -> Dict[str, Any]:
     attempt = db.query(QuizAttempt).filter(QuizAttempt.id == attempt_id).first()
-    if not attempt or attempt.is_demo:
+    if not attempt:
         return {"success": False, "reason": "demo_or_not_found"}
 
     # Must score at least 60% to qualify for rewards
@@ -299,7 +298,7 @@ def process_quiz_completion(db: Session, attempt_id: str, owner_id: str = "learn
 
 def process_study_session_completion(db: Session, session_id: str, owner_id: str = "learner") -> Dict[str, Any]:
     session = db.query(StudySession).filter(StudySession.id == session_id).first()
-    if not session or session.is_demo:
+    if not session:
         return {"success": False, "reason": "demo_or_not_found"}
 
     # Only reward sessions with at least 15 minutes of validated active duration
@@ -369,7 +368,8 @@ def get_or_generate_daily_missions(db: Session, today_date_str: str, owner_id: s
     # Generate 3 deterministic missions based on real available learning material
     has_topics = db.query(Topic).filter(Topic.status != "completed").count() > 0
     has_cards = db.query(Flashcard).count() > 0
-    has_quizzes = db.query(QuizAttempt).count() >= 0
+    from backend.models import Question, QuestionBank
+    has_quizzes = db.query(Question).count() > 0 or db.query(QuestionBank).count() > 0
 
     generated = []
 
@@ -518,6 +518,11 @@ def get_real_kingdom_stats(db: Session, owner_id: str = "learner") -> Dict[str, 
     # Calculate building visual tiers & levels
     # Citadel: level determined by wallet.total_xp
     citadel_tier = 1 if level_info["level"] < 5 else (2 if level_info["level"] < 10 else (3 if level_info["level"] < 20 else 4))
+    from backend.services.activity_service import calculate_study_streak
+    streak_info = calculate_study_streak(db)
+    streak_days = max(streak_info.get("streak_days", 0), 1 if (focus_minutes > 0 or completed_lessons > 0) else 0)
+    total_active_days = max(streak_info.get("total_active_days", 0), 1 if (focus_minutes > 0 or completed_lessons > 0) else 0)
+
 
     return {
         "wallet": {
@@ -527,8 +532,8 @@ def get_real_kingdom_stats(db: Session, owner_id: str = "learner") -> Dict[str, 
             "level": level_info["level"],
             "next_level_xp": level_info["next_level_xp"],
             "current_level_xp": level_info["xp_in_current_level"],
-            "streak_days": 1 if focus_minutes > 0 or completed_lessons > 0 else 0,
-            "total_active_days": 1 if focus_minutes > 0 or completed_lessons > 0 else 0
+            "streak_days": streak_days,
+            "total_active_days": total_active_days
         },
         "stats": {
             "citadel_level": level_info["level"],

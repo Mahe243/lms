@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database import get_db
-from backend.models import Course, Module, Topic, Subtopic, Resource, QuizAttempt, TopicRevision
+from backend.models import Course, Module, Topic, Subtopic, Resource, QuizAttempt, TopicRevision, User, utc_now
+from backend.security import get_current_user
+from pydantic import BaseModel
 from backend.schemas import (
     CourseCreate, CourseUpdate, CourseOut, CourseProgress,
     ModuleCreate, ModuleUpdate, ModuleOut,
@@ -271,7 +273,7 @@ def create_topic(module_id: str, data: TopicCreate, db: Session = Depends(get_db
     }
 
 @router.put("/topics/{topic_id}")
-def update_topic(topic_id: str, data: TopicUpdate, db: Session = Depends(get_db)):
+def update_topic(topic_id: str, data: TopicUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = db.query(Topic).filter(Topic.id == topic_id).first()
     if not t:
         raise HTTPException(status_code=404, detail="Topic not found")
@@ -284,7 +286,7 @@ def update_topic(topic_id: str, data: TopicUpdate, db: Session = Depends(get_db)
         t.status = data.status
         if data.status == "completed":
             from backend.services.earning_rules import process_lesson_completed
-            process_lesson_completed(db, topic_id)
+            process_lesson_completed(db, topic_id, owner_id=user.id)
     if data.understanding_level is not None: t.understanding_level = data.understanding_level
     if data.is_optional is not None: t.is_optional = data.is_optional
     if data.order_index is not None: t.order_index = data.order_index
@@ -352,3 +354,86 @@ def delete_subtopic(subtopic_id: str, db: Session = Depends(get_db)):
     db.delete(st)
     db.commit()
     return {"message": "Subtopic deleted successfully"}
+
+
+# Watch Progress Tracking for Real Video Playback
+class WatchProgressRequest(BaseModel):
+    position_secs: float
+    duration_secs: Optional[float] = 0.0
+    resource_id: Optional[str] = None
+    completed: Optional[bool] = False
+
+@router.post("/topics/{topic_id}/watch-progress")
+def record_watch_progress(
+    topic_id: str,
+    data: WatchProgressRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    topic = db.query(Topic).filter(Topic.id == topic_id).first()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    topic.last_studied_at = utc_now()
+    if topic.status == "not_started":
+        topic.status = "in_progress"
+
+    # Find or link the video resource
+    resource = None
+    if data.resource_id:
+        resource = db.query(Resource).filter(Resource.id == data.resource_id).first()
+    if not resource:
+        resource = db.query(Resource).filter(
+            Resource.topic_id == topic_id,
+            Resource.type == "video"
+        ).first()
+
+    if resource:
+        resource.resume_position_secs = data.position_secs
+        resource.last_opened_at = utc_now()
+        if data.duration_secs and data.duration_secs > 0:
+            resource.estimated_duration_mins = max(1, int(data.duration_secs // 60))
+        if data.completed or (data.duration_secs and data.duration_secs > 0 and (data.position_secs / data.duration_secs) >= 0.85):
+            resource.status = "completed"
+
+    reward_result = None
+    if data.completed or (resource and resource.status == "completed"):
+        if topic.status != "completed":
+            topic.status = "completed"
+            from backend.services.earning_rules import process_lesson_completed
+            reward_result = process_lesson_completed(db, topic_id, user.id)
+
+    db.commit()
+    return {
+        "status": "success",
+        "topic_id": topic_id,
+        "position_secs": data.position_secs,
+        "topic_status": topic.status,
+        "resource_status": resource.status if resource else None,
+        "reward": reward_result
+    }
+
+@router.get("/topics/{topic_id}/watch-progress")
+def get_watch_progress(
+    topic_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    topic = db.query(Topic).filter(Topic.id == topic_id).first()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    resource = db.query(Resource).filter(
+        Resource.topic_id == topic_id,
+        Resource.type == "video"
+    ).first()
+
+    return {
+        "topic_id": topic_id,
+        "topic_status": topic.status,
+        "resource_id": resource.id if resource else None,
+        "video_url": resource.url if resource else None,
+        "file_path": resource.file_path if resource else None,
+        "resume_position_secs": resource.resume_position_secs if resource else 0.0,
+        "completed": (resource.status == "completed") if resource else (topic.status == "completed")
+    }

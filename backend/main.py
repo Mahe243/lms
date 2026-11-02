@@ -4,8 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
-from backend.database import Base, engine, SessionLocal
+from backend.database import Base, engine, SessionLocal, check_db_health
 from backend.services.demo_data import seed_demo_data
+from backend.security import get_or_create_primary_user
 
 from backend.routers import (
     auth, courses, notes, resources, comments, ai_tutor,
@@ -16,14 +17,21 @@ from backend.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables on startup
-    Base.metadata.create_all(bind=engine)
-    # Check if we should seed default demo data on first boot if DB is fresh
+    # Retryable table initialization
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Database initialization warning: {e}")
+
+    # Initialize authoritative user & seed content if fresh
     db = SessionLocal()
     try:
+        get_or_create_primary_user(db)
         from backend.models import Course
         if db.query(Course).count() == 0:
             seed_demo_data(db)
+    except Exception as e:
+        print(f"Seed initialization warning: {e}")
     finally:
         db.close()
     yield
@@ -71,11 +79,17 @@ app.include_router(game.router)
 
 @app.get("/health")
 def health_check():
+    db_health = check_db_health()
     return {
-        "status": "healthy",
+        "status": "healthy" if db_health["status"] == "healthy" else "degraded",
         "app": settings.PROJECT_NAME,
-        "version": settings.PROJECT_VERSION
+        "version": settings.PROJECT_VERSION,
+        "database": db_health
     }
+
+@app.get("/api/health/db")
+def db_health_check():
+    return check_db_health()
 
 @app.get("/")
 def root():

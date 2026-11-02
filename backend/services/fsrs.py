@@ -23,7 +23,11 @@ def schedule_flashcard(
     Spaced repetition calculation (modified SM-2 / FSRS principles).
     Ratings: again (1), hard (2), good (3), easy (4)
     """
-    rating = rating.lower()
+    if isinstance(rating, int) or (isinstance(rating, str) and rating.isdigit()):
+        int_map = {1: "again", 2: "hard", 3: "good", 4: "easy"}
+        rating = int_map.get(int(rating), "good")
+    else:
+        rating = str(rating).lower()
     stability = max(1.3, stability)
     now = utc_now()
     
@@ -89,7 +93,11 @@ def schedule_topic_revision(
     """
     Topic spaced revision interval updater.
     """
-    rating = rating.lower()
+    if isinstance(rating, int) or (isinstance(rating, str) and rating.isdigit()):
+        int_map = {1: "again", 2: "hard", 3: "good", 4: "easy"}
+        rating = int_map.get(int(rating), "good")
+    else:
+        rating = str(rating).lower()
     now = utc_now()
     
     if rating == "forgot":

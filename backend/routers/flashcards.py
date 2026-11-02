@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database import get_db
-from backend.models import FlashcardDeck, Flashcard, FlashcardReview
+from backend.models import FlashcardDeck, Flashcard, FlashcardReview, User
+from backend.security import get_current_user
 from backend.schemas import (
     FlashcardDeckCreate, FlashcardDeckOut,
     FlashcardCreate, FlashcardUpdate, FlashcardOut,
@@ -197,7 +198,7 @@ def delete_card(card_id: str, db: Session = Depends(get_db)):
     return {"message": "Flashcard deleted successfully"}
 
 @router.post("/review")
-def review_flashcard(data: FlashcardReviewSubmit, db: Session = Depends(get_db)):
+def review_flashcard(data: FlashcardReviewSubmit, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     fc = db.query(Flashcard).filter(Flashcard.id == data.card_id).first()
     if not fc:
         raise HTTPException(status_code=404, detail="Flashcard not found")
@@ -235,13 +236,14 @@ def review_flashcard(data: FlashcardReviewSubmit, db: Session = Depends(get_db))
     db.commit()
     db.refresh(fc)
     from backend.services.earning_rules import process_flashcard_review
-    process_flashcard_review(db, fc.id, data.rating)
+    reward = process_flashcard_review(db, fc.id, data.rating, owner_id=user.id)
 
     return {
         "status": "success",
         "card": card_to_dict(fc),
         "scheduled_days": sched["interval_days"],
-        "next_review_at": sched["next_review_at"]
+        "next_review_at": sched["next_review_at"],
+        "reward": reward
     }
 
 @router.post("/undo-review/{card_id}")
