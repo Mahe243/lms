@@ -8,7 +8,8 @@ export type NavigationPath =
   | 'my-library'
   | 'projects'
   | 'goals-and-progress'
-  | 'settings';
+  | 'settings'
+  | 'market';
 
 export interface UserProfile {
   name: string;
@@ -18,12 +19,13 @@ export interface UserProfile {
   term: string;
   week: string;
   streakDays: number;
-  streakTopPercent: number;
+  streakTopPercent?: number;
   deepWorkHoursToday: number;
   deepWorkTargetToday: number;
   weeklyXP: number;
   retainedNodes: number;
   level: number;
+  coins?: number;
 }
 
 export interface Course {
@@ -96,7 +98,7 @@ export interface LibraryItem {
   title: string;
   author: string;
   year?: string;
-  category: 'Book' | 'Research Paper' | 'Lecture Note' | 'Cheat Sheet' | 'Case Study';
+  category: 'Book' | 'Research Paper' | 'Lecture Note' | 'Cheat Sheet' | 'Case Study' | 'Video Lecture';
   tags: string[];
   readTime: string;
   progress: number;
@@ -106,6 +108,9 @@ export interface LibraryItem {
   fullNotes?: string;
   citation: string;
   bookmarked: boolean;
+  fileUrl?: string;
+  fileType?: string;
+  fileSize?: string;
 }
 
 export interface MockExam {
@@ -119,7 +124,7 @@ export interface MockExam {
       id: number;
       text: string;
       options: string[];
-      correctAnswer: number;
+      correctAnswer?: number;
       explanation: string;
       topic: string;
       difficulty: 'Easy' | 'Moderate' | 'Challenging';
