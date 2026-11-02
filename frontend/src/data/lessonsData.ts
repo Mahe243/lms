@@ -13,7 +13,7 @@ export const ENTERPRISE_RAG_LESSONS: Record<string, EnterpriseLesson> = {
     moduleTitle: 'Module 01 • Vector Compaction & Codebooks',
     duration: '35:20',
     completed: true,
-    videoUrl: 'https://www.youtube.com/watch?v=ywsyN_l7Wp8',
+    videoUrl: 'https://www.youtube.com/watch?v=OATCgQtNX2o',
     lead: 'Master sub-vector clustering, centroid codebooks, and Asymmetric Distance Computation (ADC) to compress high-dimensional vector spaces by 8x-16x.',
     notes: `Product Quantization ADC Insight:
 - Distance table is precalculated once per query for each sub-vector codebook.
@@ -180,7 +180,7 @@ Standard LLM inference engines allocate contiguous GPU memory buffers for each r
     moduleTitle: 'Module 03 • Advanced Context Compression & Quantization',
     duration: '24:18',
     completed: false,
-    videoUrl: 'https://www.youtube.com/watch?v=kCc8FmEb1nY',
+    videoUrl: 'https://www.youtube.com/watch?v=sVcwVQRHIc8',
     lead: 'Master the integration of lexical inverted indexes (BM25) with dense vector representations (HNSW) to overcome semantic blind spots at enterprise scale.',
     notes: `Key insight: RRF Score(d) = sum(1 / (k + rank)). k=60 prevents top-1 bias.
 Tantivy full-text search handles alphanumeric SKUs, while Milvus HNSW handles semantic intent.`,
@@ -281,7 +281,7 @@ Dense embeddings compress semantic meaning into dense high-dimensional manifolds
     moduleTitle: 'Module 04 • Multi-Stage Reranking & Edge Deployment',
     duration: '45:30',
     completed: false,
-    videoUrl: 'https://www.youtube.com/watch?v=YwN0h_N3QyM',
+    videoUrl: 'https://www.youtube.com/watch?v=eMlx5fFNoYc',
     lead: 'Implement two-stage candidate retrieval pipelines with transformer-based cross-attention reranking and sub-15ms edge inference.',
     notes: `Two-stage funnel:
 10,000,000 docs -> (HNSW/BM25) -> Top 100 Candidates -> (FlashRank MiniLM Cross-Encoder) -> Top 5 LLM Context Window.
@@ -358,7 +358,7 @@ def rerank_passages(query: str, candidates: list[dict]) -> list[dict]:
     moduleTitle: 'Module 05 • Enterprise Security & RBAC Isolation',
     duration: '50:10',
     completed: false,
-    videoUrl: 'https://www.youtube.com/watch?v=0bT_jVd38oM',
+    videoUrl: 'https://www.youtube.com/watch?v=zjkBMFhNj_g',
     lead: 'Design zero-leakage enterprise multi-tenant vector partitions using physical shard keys and RBAC metadata security filters.',
     notes: `Enterprise Security & Multi-Tenancy Invariants:
 - Partition key physical sharding prevents index scan contamination and provides strict hardware resource isolation.

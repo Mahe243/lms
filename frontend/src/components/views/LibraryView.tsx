@@ -25,14 +25,26 @@ export const LibraryView: React.FC = () => {
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const categories = ['All', 'Book', 'Research Paper', 'Lecture Note', 'Cheat Sheet'];
+  const categories = [
+    { label: `All Vault (${libraryItems.length})`, value: 'All' },
+    { label: `Sessions (${libraryItems.filter((i) => i.category === 'Lecture Note').length})`, value: 'Lecture Note' },
+    { label: `Maps of Content (${libraryItems.filter((i) => i.category === 'Cheat Sheet').length})`, value: 'Cheat Sheet' },
+    { label: `Concepts (${libraryItems.filter((i) => i.category === 'Research Paper').length})`, value: 'Research Paper' },
+    { label: `Bookmarked (${libraryItems.filter((i) => i.bookmarked).length})`, value: 'Bookmarked' },
+  ];
 
   const filteredItems = libraryItems.filter((item) => {
-    const matchesCat = selectedCategory === 'All' || item.category === selectedCategory;
+    const matchesCat =
+      selectedCategory === 'All'
+        ? true
+        : selectedCategory === 'Bookmarked'
+        ? item.bookmarked
+        : item.category === selectedCategory;
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      item.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.summary && item.summary.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCat && matchesSearch;
   });
 
@@ -107,15 +119,15 @@ export const LibraryView: React.FC = () => {
             <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto">
               {categories.map((cat) => (
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                    selectedCategory === cat
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-on-surface-variant hover:bg-surface-container-high'
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    selectedCategory === cat.value
+                      ? 'bg-kingdom-violet text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  {cat}
+                  {cat.label}
                 </button>
               ))}
             </div>
@@ -186,10 +198,10 @@ export const LibraryView: React.FC = () => {
                   </span>
                   <button
                     onClick={() => setActiveReaderItem(item)}
-                    className="font-bold text-primary dark:text-inverse-primary flex items-center gap-0.5 group-hover:translate-x-1 transition-transform cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-kingdom-violet hover:bg-kingdom-violet-light text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
                   >
-                    <span>Read Notes</span>
-                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    <span className="material-symbols-outlined text-[15px]">menu_book</span>
+                    <span>Read Full Notes</span>
                   </button>
                 </div>
               </div>

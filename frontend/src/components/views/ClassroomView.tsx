@@ -174,7 +174,28 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
     setActiveVideoUrl(target.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY');
   };
 
-  const effectiveVideoUrl = activeLesson?.videoUrl || activeVideoUrl || currentEnterpriseLesson.videoUrl || 'https://www.youtube.com/watch?v=kCc8FmEb1nY';
+  const effectiveVideoUrl = activeLesson?.videoUrl || activeVideoUrl || currentEnterpriseLesson.videoUrl || 'https://www.youtube.com/watch?v=sVcwVQRHIc8';
+
+  const currentIndex = DEFAULT_SYLLABUS.findIndex(
+    (item) => item.id === activeLesson?.id || activeLesson?.title?.toLowerCase().includes(item.title.toLowerCase().slice(0, 15))
+  );
+  const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+  const prevLesson = safeCurrentIndex > 0 ? DEFAULT_SYLLABUS[safeCurrentIndex - 1] : null;
+  const nextLesson = safeCurrentIndex < DEFAULT_SYLLABUS.length - 1 ? DEFAULT_SYLLABUS[safeCurrentIndex + 1] : null;
+
+  const handleNextLesson = () => {
+    if (nextLesson) {
+      handleSelectLesson(nextLesson.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevLesson = () => {
+    if (prevLesson) {
+      handleSelectLesson(prevLesson.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="relative w-full px-4 sm:px-6 lg:px-8 pt-6 pb-20 flex flex-col gap-6 max-w-7xl mx-auto">
@@ -225,6 +246,7 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
         <div className="lg:col-span-8 flex flex-col gap-5">
           {/* Real Classroom Video Player with Direct Switching */}
           <ClassroomVideoPlayer
+            key={activeLesson?.id || activeVideoUrl}
             videoUrl={effectiveVideoUrl}
             topicId={activeLesson?.id || 'lesson-hybrid-search'}
             lessonTitle={currentEnterpriseLesson.title}
@@ -240,6 +262,55 @@ Latency overhead: 2.1ms (99.8% faster than linear distance calibration)`);
               handleSaveNotes((notes ? notes + '\n' : '') + `${stamp}Lecture note: `);
             }}
           />
+
+          {/* Quick Video Navigation Bar (Previous / Next Video) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-kingdom-navy-card border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="flex items-center gap-2">
+              <button
+                disabled={!prevLesson}
+                onClick={handlePrevLesson}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1 active:scale-95"
+                title={prevLesson ? `Previous: ${prevLesson.title}` : 'First Lesson'}
+              >
+                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span className="hidden sm:inline">Previous</span>
+              </button>
+
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300">
+                Lesson {safeCurrentIndex + 1} of {DEFAULT_SYLLABUS.length}
+              </span>
+
+              <button
+                disabled={!nextLesson}
+                onClick={handleNextLesson}
+                className="px-3.5 py-1.5 rounded-xl bg-kingdom-violet hover:bg-kingdom-violet-light text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                title={nextLesson ? `Next: ${nextLesson.title}` : 'All Lessons Completed'}
+              >
+                <span>Next Video</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
+
+            {nextLesson ? (
+              <div 
+                onClick={handleNextLesson}
+                className="flex items-center gap-2 text-xs text-slate-500 hover:text-kingdom-violet transition-colors cursor-pointer group"
+              >
+                <span className="text-[11px] font-mono uppercase text-slate-400">Up Next:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-kingdom-violet truncate max-w-[200px] sm:max-w-[260px]">
+                  {nextLesson.number}. {nextLesson.title}
+                </span>
+                <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform text-kingdom-violet">
+                  play_circle
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs font-mono font-bold text-emerald-600 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                <span>Final Course Milestone</span>
+              </span>
+            )}
+          </div>
 
           {/* Navigation Tabs */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-kingdom-navy-dark p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-x-auto no-scrollbar">

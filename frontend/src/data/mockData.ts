@@ -1,3 +1,4 @@
+import { PMII_VAULT_ITEMS } from './vaultData';
 import type { Course, Lesson, Flashcard, LibraryItem, MockExam, ProjectData, UserProfile } from '../types';
 
 export const initialUser: UserProfile = {
@@ -263,6 +264,7 @@ This phenomenon is famously known as the *Pin Risk Vortex*.`,
 ];
 
 export const libraryItemsData: LibraryItem[] = [
+  ...PMII_VAULT_ITEMS,
   {
     id: 'hull-derivatives',
     title: 'Options, Futures, and Other Derivatives (10th Ed.)',

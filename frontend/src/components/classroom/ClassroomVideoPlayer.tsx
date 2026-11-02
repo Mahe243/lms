@@ -178,9 +178,10 @@ export const ClassroomVideoPlayer: React.FC<ClassroomVideoPlayerProps> = ({
   // Case 1: Real YouTube Video
   if (youtubeId) {
     return (
-      <div className="relative rounded-2xl overflow-hidden bg-[#0A0F1D] text-white shadow-xl aspect-video border border-kingdom-violet/20 flex flex-col justify-between group">
+      <div key={youtubeId} className="relative rounded-2xl overflow-hidden bg-[#0A0F1D] text-white shadow-xl aspect-video border border-kingdom-violet/20 flex flex-col justify-between group">
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&enablejsapi=1&rel=0`}
+          key={youtubeId}
+          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&enablejsapi=1&rel=0`}
           title={lessonTitle || 'Lesson Video'}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

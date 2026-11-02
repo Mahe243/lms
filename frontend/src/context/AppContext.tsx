@@ -1,3 +1,4 @@
+import { PMII_VAULT_ITEMS } from '../data/vaultData';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   NavigationPath,
@@ -12,7 +13,6 @@ import {
   initialUser,
   coursesData,
   currentClassroomLesson,
-  libraryItemsData,
   flashcardsData,
 } from '../data/mockData';
 import { soundscapeEngine } from '../utils/soundscapes';
@@ -241,16 +241,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   });
 
-  // Game Wallet & Real Stats
-  const [gameWallet, setGameWallet] = useState<GameWalletState>({
-    coin_balance: 0,
-    total_xp: 0,
-    level: 1,
-    next_level_xp: 100,
-    current_level_xp: 0,
-    streak_days: 0,
-    total_active_days: 0,
+  // Game Wallet & Real Stats with Persistent Storage
+  const [gameWallet, setGameWallet] = useState<GameWalletState>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_game_wallet`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.total_xp === 'number') {
+          return parsed;
+        }
+      }
+    } catch {}
+    return {
+      coin_balance: 100,
+      total_xp: 0,
+      level: 1,
+      next_level_xp: 100,
+      current_level_xp: 0,
+      streak_days: 1,
+      total_active_days: 1,
+    };
   });
+
+  // Always persist game wallet to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_game_wallet`, JSON.stringify(gameWallet));
+    } catch {}
+  }, [gameWallet]);
+
+  // Always persist user profile to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_user`, JSON.stringify(user));
+    } catch {}
+  }, [user]);
 
   // Fast Recall
   const [fastRecalls, setFastRecalls] = useState<FastRecallEntry[]>(() => {
@@ -273,11 +298,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ];
   });
 
-  // Library & Flashcards
+  // Library & Flashcards with Full PM II Vault Archives
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_library`);
-    return saved ? JSON.parse(saved) : libraryItemsData;
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_library`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= 20) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return PMII_VAULT_ITEMS;
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_library`, JSON.stringify(libraryItems));
+    } catch {}
+  }, [libraryItems]);
 
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_flashcards`);
@@ -387,19 +426,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await fetch('/api/game/wallet');
       if (res.ok) {
         const data = await res.json();
-        setGameWallet((prev) => ({
-          ...data,
-          total_xp: Math.max(data.total_xp, prev.total_xp),
-          coin_balance: Math.max(data.coin_balance, prev.coin_balance),
-          level: Math.max(data.level, prev.level),
-        }));
-        setUser((prev) => ({
-          ...prev,
-          weeklyXP: Math.max(data.total_xp, prev.weeklyXP || 0),
-          level: Math.max(data.level, prev.level || 1),
-          coins: Math.max(data.coin_balance, prev.coins || 0),
-          streakDays: (typeof data.streak_days === 'number' && data.streak_days > 0) ? data.streak_days : (prev.streakDays || 1),
-        }));
+        setGameWallet((prev) => {
+          const merged = {
+            ...data,
+            total_xp: Math.max(data.total_xp, prev.total_xp),
+            coin_balance: Math.max(data.coin_balance, prev.coin_balance),
+            level: Math.max(data.level, prev.level),
+            streak_days: (typeof data.streak_days === 'number' && data.streak_days > 0) ? data.streak_days : Math.max(prev.streak_days, 1),
+          };
+          try {
+            localStorage.setItem(`${STORAGE_KEY}_game_wallet`, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+        setUser((prev) => {
+          const mergedUser = {
+            ...prev,
+            weeklyXP: Math.max(data.total_xp, prev.weeklyXP || 0),
+            level: Math.max(data.level, prev.level || 1),
+            coins: Math.max(data.coin_balance, prev.coins || 0),
+            streakDays: (typeof data.streak_days === 'number' && data.streak_days > 0) ? data.streak_days : (prev.streakDays || 1),
+          };
+          try {
+            localStorage.setItem(`${STORAGE_KEY}_user`, JSON.stringify(mergedUser));
+          } catch {}
+          return mergedUser;
+        });
       }
     } catch {
       // Backend not yet available or offline; keep deterministic local values
