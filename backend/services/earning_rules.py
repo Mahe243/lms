@@ -131,6 +131,8 @@ def award_rewards(
     wallet.coin_balance += coin_amount
     wallet.updated_at = utc_now()
 
+    tx_created = datetime.strptime(today_date_str, "%Y-%m-%d") if today_date_str else utc_now()
+
     # Record transactions
     if xp_amount > 0:
         tx_xp = GameTransaction(
@@ -142,7 +144,7 @@ def award_rewards(
             source_type=source_type,
             source_id=source_id,
             idempotency_key=f"{idempotency_key}_xp",
-            created_at=utc_now()
+            created_at=tx_created
         )
         db.add(tx_xp)
 
@@ -156,7 +158,7 @@ def award_rewards(
             source_type=source_type,
             source_id=source_id,
             idempotency_key=f"{idempotency_key}_coin",
-            created_at=utc_now()
+            created_at=tx_created
         )
         db.add(tx_coin)
 
@@ -170,7 +172,7 @@ def award_rewards(
         source_type=source_type,
         source_id=source_id,
         idempotency_key=idempotency_key,
-        created_at=utc_now()
+        created_at=tx_created
     )
     db.add(master_tx)
 

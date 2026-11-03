@@ -2,9 +2,10 @@ import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import confetti from 'canvas-confetti';
 import { resourcesApi } from '../../api/resources';
+import { createYouTubeLesson, saveCustomLesson } from '../../data/lessonsData';
 
 export const UploadModal: React.FC = () => {
-  const { isUploadModalOpen, setIsUploadModalOpen, addLibraryItem, courses, setActiveVideoUrl, setCurrentPath, user } = useApp();
+  const { isUploadModalOpen, setIsUploadModalOpen, addLibraryItem, courses, setActiveLesson, setActiveVideoUrl, setCurrentPath, user } = useApp();
   
   const [activeTab, setActiveTab] = useState<'file' | 'link'>('file');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -138,6 +139,11 @@ export const UploadModal: React.FC = () => {
     });
 
     if (category === 'Video Lecture' && fileUrl) {
+      const customLesson = createYouTubeLesson(fileUrl, title || 'Custom Video Lecture');
+      if (customLesson) {
+        saveCustomLesson(customLesson);
+        setActiveLesson(customLesson);
+      }
       setActiveVideoUrl(fileUrl);
       setCurrentPath('classroom');
     }
